@@ -1,0 +1,9 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+sqlalchemy>=2.0
+pydantic[email]>=2.6
+passlib>=1.7.4
+pyjwt>=2.8
+python3-openid>=3.2
+requests>=2.31
+rapidfuzz>=3.6
