@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Assassin's Creed — Архив франшизы · LIMEN</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        screens: { xs: '420px' },
+        fontFamily: {
+          cinzel: ['Cinzel', 'Cormorant Garamond', 'Georgia', 'serif'],
+          inter: ['Inter', 'system-ui', 'sans-serif']
+        },
+        colors: { ink: '#07070a', blood: '#c8102e', bone: '#ece6da', gold: '#d4af6a' }
+      }
+    }
+  };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<style>
+  :root { --red: #c8102e; --animus: 150, 205, 255; --ease: cubic-bezier(.2,.8,.2,1); }
+  html, body { background: #07070a; }
+  body { font-family: 'Inter', system-ui, sans-serif; color: #f5f2ea; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--red); color: #fff; }
+  .font-cinzel { font-family: 'Cinzel', 'Cormorant Garamond', Georgia, serif; } /* Cinzel без кириллицы → русские буквы берёт Cormorant */
+  .no-scrollbar { scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }
+  html.is-locked, html.is-locked body { overflow: hidden; }
+
+  /* ===== Тема страницы: цвет текста и фона плавно меняются при скролле ===== */
+  body                    { --page-bg: #ffffff; --fg: #111114; --fg-2: #3f3f46; --fg-3: #5f5f68; --line: rgba(17,17,20,.12); --surface: #f4f4f5; --outline: rgba(17,17,20,.16); }
+  body[data-theme="dark"] { --page-bg: #0b0b0e; --fg: #f5f2ea; --fg-2: #dcd7cc; --fg-3: #a8a49b; --line: rgba(245,242,234,.14); --surface: #16171c; --outline: rgba(245,242,234,.16); }
+  .t-bg      { background-color: var(--page-bg); transition: background-color .9s ease; }
+  .t-fg      { color: var(--fg);   transition: color .6s ease; }
+  .t-fg2     { color: var(--fg-2); transition: color .6s ease; }
+  .t-fg3     { color: var(--fg-3); transition: color .6s ease; }
+  .t-line    { border-color: var(--line); transition: border-color .6s ease, background-color .6s ease, color .6s ease; }
+  .t-surface { background-color: var(--surface); transition: background-color .6s ease, border-color .6s ease; }
+  .t-outline { color: transparent; -webkit-text-stroke: 1px var(--outline); transition: -webkit-text-stroke-color .6s ease; }
+
+  /* ===== Шапка: цвет зависит от фона под ней ===== */
+  #site-header { color: #f5f2ea; border-bottom: 1px solid transparent; transition: color .5s ease, background-color .5s ease, border-color .5s ease; }
+  #site-header[data-theme="light"] { color: #111114; }
+  #site-header.has-bg { -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+  #site-header.has-bg[data-theme="light"] { background-color: rgba(255,255,255,.82); border-color: rgba(17,17,20,.08); }
+  #site-header.has-bg[data-theme="dark"]  { background-color: rgba(11,11,14,.72); border-color: rgba(255,255,255,.08); }
+  .nav-link { position: relative; padding: 4px 0; opacity: .75; transition: opacity .3s; }
+  .nav-link::after { content: ''; position: absolute; left: 0; bottom: -2px; height: 1px; width: 100%; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform .5s var(--ease); }
+  .nav-link:hover { opacity: 1; } .nav-link:hover::after { transform: scaleX(1); transform-origin: left; }
+
+  /* ===== HERO: Анимус (загрузка) ===== */
+  #leap-bg {
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(40,90,160,.20), transparent 60%),
+      linear-gradient(180deg, rgba(7,7,10,.74) 0%, rgba(7,7,10,.58) 45%, rgba(7,7,10,.94) 100%),
+      #07070a;
+  }
+  #leap-bg, #leap-stage { will-change: transform; }
+  .animus-grid {
+    background-image: linear-gradient(rgba(var(--animus), .09) 1px, transparent 1px), linear-gradient(90deg, rgba(var(--animus), .09) 1px, transparent 1px);
+    background-size: 64px 64px;
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, #000 20%, transparent 78%); mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, #000 20%, transparent 78%);
+    animation: grid-drift 12s linear infinite;
+  }
+  .animus-floor {
+    background-image: linear-gradient(rgba(var(--animus), .22) 1px, transparent 1px), linear-gradient(90deg, rgba(var(--animus), .22) 1px, transparent 1px);
+    background-size: 80px 80px; transform: perspective(520px) rotateX(64deg); transform-origin: 50% 0;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 35%, #000 60%, transparent); mask-image: linear-gradient(to bottom, transparent, #000 35%, #000 60%, transparent);
+    animation: floor-run 2.4s linear infinite;
+  }
+  @keyframes grid-drift { to { background-position: 64px 64px, 64px 64px; } }
+  @keyframes floor-run { to { background-position: 0 80px, 0 80px; } }
+  .scan-h { position: absolute; left: 0; right: 0; height: 160px; top: -20%; pointer-events: none; mix-blend-mode: screen;
+    background: linear-gradient(to bottom, transparent, rgba(var(--animus), .06) 60%, rgba(var(--animus), .35) 97%, rgba(255,255,255,.85) 99%, transparent);
+    animation: scan-h 4.2s cubic-bezier(.45,.05,.55,.95) infinite; }
+  .scan-v { position: absolute; top: 0; bottom: 0; width: 1px; left: -5%; pointer-events: none;
+    background: linear-gradient(to bottom, transparent, rgba(var(--animus), .7), transparent); box-shadow: 0 0 24px 4px rgba(var(--animus), .25);
+    animation: scan-v 7s linear infinite; }
+  @keyframes scan-h { to { top: 115%; } }
+  @keyframes scan-v { to { left: 105%; } }
+  .scanlines { background: repeating-linear-gradient(to bottom, rgba(255,255,255,.025) 0 1px, transparent 1px 3px); pointer-events: none; }
+  .vignette { background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.85) 100%); pointer-events: none; }
+  .frag { position: absolute; background: rgba(var(--animus), .55); box-shadow: 0 0 12px rgba(var(--animus), .5); opacity: 0; }
+  .hud { font-size: 10px; letter-spacing: .32em; text-transform: uppercase; color: rgba(var(--animus), .8); }
+  .hud-corner { position: absolute; width: 22px; height: 22px; border-color: rgba(var(--animus), .5); }
+  .sync-bar { background: rgba(var(--animus), .14); }
+  .sync-fill { background: linear-gradient(90deg, rgba(var(--animus), .4), #fff); box-shadow: 0 0 16px rgba(var(--animus), .8); transform-origin: left; }
+  .crest-stroke { stroke-dasharray: 1; stroke-dashoffset: 1; }
+  .mouse { width: 22px; height: 34px; border: 1.5px solid rgba(255,255,255,.55); border-radius: 12px; position: relative; }
+  .mouse::after { content: ''; position: absolute; left: 50%; top: 7px; width: 2px; height: 7px; margin-left: -1px; border-radius: 2px; background: #fff; animation: wheel 1.8s ease-in-out infinite; }
+  @keyframes wheel { 0% { opacity: 0; transform: translateY(-3px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(9px); } }
+
+  /* Частицы */
+  .ptc { position: absolute; border-radius: 9999px; opacity: 0; bottom: -10px; animation: pRise linear infinite; }
+  @keyframes pRise { 0% { transform: translate(0,0); opacity: 0; } 10% { opacity: .9; } 80% { opacity: .6; } 100% { transform: translate(var(--dx), -110vh); opacity: 0; } }
+
+  /* ===== FX: ANIMUS (переход как на странице AC2) ===== */
+  .an-grid {
+    background-image:
+      linear-gradient(rgba(120,205,255,.22) 1px, transparent 1px), linear-gradient(90deg, rgba(120,205,255,.22) 1px, transparent 1px),
+      linear-gradient(rgba(150,225,255,.55) 1px, transparent 1px), linear-gradient(90deg, rgba(150,225,255,.55) 1px, transparent 1px);
+    background-size: 48px 48px, 48px 48px, 240px 240px, 240px 240px; background-position: center;
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 var(--r), transparent calc(var(--r) + 14%)); mask-image: radial-gradient(circle at 50% 50%, #000 var(--r), transparent calc(var(--r) + 14%));
+    mix-blend-mode: screen;
+  }
+  .an-floor {
+    position: absolute; left: -50%; right: -50%; bottom: -5%; height: 55%; opacity: 0; transform-origin: 50% 100%; transform: perspective(420px) rotateX(62deg);
+    background-image: linear-gradient(rgba(120,205,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(120,205,255,.5) 1px, transparent 1px);
+    background-size: 60px 60px; animation: anFloor 1s linear infinite;
+    -webkit-mask-image: linear-gradient(to top, #000 20%, transparent 90%); mask-image: linear-gradient(to top, #000 20%, transparent 90%); mix-blend-mode: screen;
+  }
+  @keyframes anFloor { to { background-position: 0 60px; } }
+  .an-scan { position: absolute; left: 0; right: 0; top: 0; height: 160px; transform: translateY(-170px); mix-blend-mode: screen; background: linear-gradient(to bottom, rgba(90,200,255,0) 0%, rgba(90,200,255,.16) 80%, rgba(210,245,255,.95) 100%); }
+  .an-vscan { position: absolute; top: 0; bottom: 0; left: 0; width: 160px; transform: translateX(-170px); mix-blend-mode: screen; background: linear-gradient(to right, rgba(90,200,255,0), rgba(90,200,255,.14) 80%, rgba(210,245,255,.9)); }
+  .an-corner { position: absolute; width: 46px; height: 46px; border: 0 solid rgba(130,215,255,.9); opacity: 0; }
+  .an-hud { position: absolute; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; letter-spacing: .25em; color: rgba(150,220,255,.95); white-space: nowrap; clip-path: inset(0 100% 0 0); max-width: 90vw; overflow: hidden; text-overflow: ellipsis; }
+  #an-logo { filter: drop-shadow(0 0 12px rgba(80,190,255,0.8)); }
+  #leap-tt-text { overflow-wrap: anywhere; max-width: 100%; }
+  /* Белый оверлей: поднимается снизу синхронно со скроллом и бесшовно переходит в белую секцию */
+  #leap-veil { position: absolute; left: 0; right: 0; top: 0; height: 140%; z-index: 12; pointer-events: none; transform: translate3d(0,100%,0); will-change: transform;
+    background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.55) 12%, rgba(255,255,255,.92) 22%, #ffffff 28.6%, #ffffff 100%); }
+
+  /* ===== Белая секция: сетка игр ===== */
+  .text-outline-light { color: transparent; -webkit-text-stroke: 1px #d4d4d8; }
+  .chip { display: inline-flex; align-items: center; gap: .5rem; height: 38px; padding: 0 1rem; border-radius: 9999px; border: 1px solid #d4d4d8; color: #3f3f46; background: #fff;
+    font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; transition: background .3s, color .3s, border-color .3s; }
+  .chip:hover { border-color: #111114; color: #111114; }
+  .chip.is-active { background: #111114; border-color: #111114; color: #fff; }
+  .chip .cnt { font-size: 10px; letter-spacing: 0; opacity: .92; font-weight: 700; }
+
+  .game-card { transform: scale(1); transition: transform .6s var(--ease), box-shadow .6s var(--ease); box-shadow: 0 18px 40px -26px rgba(0,0,0,.55); will-change: transform; }
+  .game-card:hover, .game-card:focus-visible { transform: scale(1.05); z-index: 2; box-shadow: 0 40px 70px -30px rgba(0,0,0,.7), 0 0 0 2px var(--acc); }
+  .game-card .gc-cover { transition: transform 1.2s var(--ease), filter .6s; filter: saturate(.9); }
+  .game-card:hover .gc-cover, .game-card:focus-visible .gc-cover { transform: scale(1.08); filter: saturate(1.15); }
+  .game-card .gc-fig { transition: transform 1s var(--ease), opacity .6s; }
+  .game-card:hover .gc-fig { transform: translate(-50%, -4%) scale(1.04); opacity: .8; }
+  .gc-short { color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,.32); }
+  .game-card .gc-line { width: 2.5rem; transition: width .7s var(--ease); }
+  .game-card:hover .gc-line, .game-card:focus-visible .gc-line { width: 100%; }
+  .game-card .gc-cta { opacity: 0; transform: translateX(-6px); transition: opacity .4s, transform .5s var(--ease); }
+  .game-card:hover .gc-cta, .game-card:focus-visible .gc-cta { opacity: 1; transform: translateX(0); }
+  @media (hover: none) { .game-card .gc-cta { opacity: 1; transform: none; } }
+
+  /* ===== Персонажи ===== */
+  .char-card { box-shadow: 0 20px 50px -30px rgba(0,0,0,.6); transition: transform .6s var(--ease), box-shadow .6s var(--ease); }
+  .char-card:hover, .char-card:focus-visible, .char-card.is-open { transform: translateY(-6px); box-shadow: 0 40px 80px -35px rgba(0,0,0,.8), 0 0 0 1px var(--acc); }
+  .char-card .char-fig { transition: transform 1s var(--ease); }
+  .char-card:hover .char-fig, .char-card.is-open .char-fig { transform: translateX(-50%) scale(1.06); }
+  .char-card .char-bio { transform: translateY(101%); transition: transform .6s var(--ease); }
+  .char-card:focus-visible .char-bio, .char-card.is-open .char-bio { transform: translateY(0); }
+  @media (hover: hover) { .char-card:hover .char-bio { transform: translateY(0); } }
+  .char-ghost { color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,.22); }
+
+  /* ===== Кодекс (аккордеон) ===== */
+  .cx-body { height: 0; overflow: hidden; }
+  .cx-plus::before, .cx-plus::after { content: ''; position: absolute; left: 50%; top: 50%; width: 14px; height: 1.5px; margin: -.75px 0 0 -7px; background: currentColor; transition: transform .5s var(--ease); }
+  .cx-plus::after { transform: rotate(90deg); }
+  .cx-item.is-open .cx-plus::after { transform: rotate(0deg); }
+  .cx-item.is-open .cx-ico { color: #fff; background: var(--red); border-color: var(--red); }
+  .cx-ico { transition: color .4s, background-color .4s, border-color .4s; }
+
+  /* ===== Модальное окно игры ===== */
+  #gm-backdrop { background: rgba(5,5,8,.6); -webkit-backdrop-filter: blur(12px) saturate(1.1); backdrop-filter: blur(12px) saturate(1.1); }
+  #gm-panel { width: 95vw; height: 92vh; height: 92dvh; background: #0f1116; box-shadow: 0 40px 120px -20px rgba(0,0,0,.9); }
+  @media (min-width: 768px) { #gm-panel { width: 90vw; height: 90vh; height: 90dvh; } }
+  #gm-scroll { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  #gm-scroll::-webkit-scrollbar { width: 8px; } #gm-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); border-radius: 8px; }
+  .gm-tab { color: #a9b0bd; transition: color .3s; }
+  .gm-tab:hover { color: #fff; }
+  .gm-tab[aria-selected="true"] { color: #fff; }
+  .gm-card { background: #1b1e26; border: 1px solid rgba(255,255,255,.12); box-shadow: inset 0 1px 0 rgba(255,255,255,.04); transition: border-color .4s, transform .5s var(--ease), background-color .4s; }
+  .gm-card:hover { border-color: color-mix(in srgb, var(--acc) 65%, transparent); background: #20242e; }
+  .ach-ico { transition: transform .6s var(--ease); }
+  .gm-card:hover .ach-ico { transform: rotate(-6deg) scale(1.06); }
+  .gm-chip { display: inline-flex; align-items: center; gap: .4rem; height: 28px; padding: 0 .75rem; border-radius: 9999px; font-size: 10.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+    color: #fff; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.22); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ===== Мобильные ===== */
+  @media (max-width: 640px) {
+    .an-hud { font-size: 8px; letter-spacing: .14em; }
+    .an-corner { width: 30px; height: 30px; }
+  }
+</style>
+</head>
+<body data-theme="light">
+
+<!-- ===== SVG-символы ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="robe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a1714"/><stop offset=".55" stop-color="#0b0a09"/><stop offset="1" stop-color="#030303"/>
+    </linearGradient>
+    <symbol id="assassin" viewBox="0 0 400 640">
+      <path fill="url(#robe)" d="M200 26 C222 44 248 70 252 110 C255 140 250 165 244 182 C290 196 322 214 334 250 C344 282 346 330 342 372 L336 424 L318 426 L314 382 C311 352 306 324 300 304 L302 420 C318 480 336 560 352 640 L48 640 C64 560 82 480 98 420 L100 304 C94 324 89 352 86 382 L82 426 L64 424 L58 372 C54 330 56 282 66 250 C78 214 110 196 156 182 C150 165 145 140 148 110 C152 70 178 44 200 26 Z"/>
+      <path d="M200 30 C204 80 204 130 200 180" stroke="rgba(255,255,255,.08)" stroke-width="3" fill="none"/>
+      <path d="M156 182 C185 196 215 196 244 182" stroke="rgba(255,255,255,.06)" stroke-width="3" fill="none"/>
+      <path style="fill: var(--sash, #b3121f)" d="M98 392 C150 404 250 404 302 392 L302 420 C250 432 150 432 98 420 Z"/>
+      <path style="fill: var(--sash, #b3121f)" opacity=".85" d="M186 418 L176 470 L196 466 Z"/>
+      <path fill="#000" opacity=".55" d="M200 432 L182 640 L218 640 Z"/>
+      <path d="M332 404 L352 330" stroke="#d9d4cc" stroke-width="2.5" stroke-linecap="round" opacity=".55"/>
+    </symbol>
+    <symbol id="crest" viewBox="0 0 100 100">
+      <path d="M50 6 C40 20 18 52 8 90 C20 81 30 75 38 73 L50 40 L62 73 C70 75 80 81 92 90 C82 52 60 20 50 6 Z"/>
+      <path d="M50 56 L56.5 72 L50 84 L43.5 72 Z"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- Прогресс страницы -->
+<div class="fixed top-0 left-0 right-0 h-[2px] z-[60] pointer-events-none">
+  <div id="page-progress" class="h-full bg-blood origin-left shadow-[0_0_12px_#c8102e]" style="transform:scaleX(0)"></div>
+</div>
+
+<!-- Шапка -->
+<header id="site-header" data-theme="dark" class="fixed top-0 inset-x-0 z-50">
+  <div class="mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center justify-between gap-4">
+    <a href="index.html" class="flex items-center gap-3 min-w-0 shrink-0" aria-label="LIMEN — на главную">
+      <svg class="w-6 h-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 21V10a7 7 0 0 1 14 0v11"/><path d="M9 21v-8a3 3 0 0 1 6 0v8"/><path d="M3 21h18"/></svg>
+      <span class="font-cinzel tracking-[0.4em] text-sm">LIMEN</span>
+    </a>
+    <nav class="hidden md:flex items-center gap-8 text-[11px] tracking-[0.28em] uppercase font-medium" aria-label="Разделы">
+      <a href="#games" data-scroll class="nav-link">Игры</a>
+      <a href="#characters" data-scroll class="nav-link">Персонажи</a>
+      <a href="#codex" data-scroll class="nav-link">Кодекс</a>
+    </nav>
+    <a href="index.html" class="text-[10px] tracking-[0.3em] uppercase opacity-75 hover:opacity-100 transition-opacity whitespace-nowrap">← Франшизы</a>
+  </div>
+</header>
+
+<main>
+  <!-- ================= 1. HERO: загрузка Анимуса + переход (pin) ================= -->
+  <section id="leap" class="relative h-screen min-h-[560px] w-full overflow-hidden bg-black text-white" aria-label="Загрузка Анимуса">
+    <div id="leap-stage" class="absolute inset-0" style="z-index:1">
+      <div id="leap-bg" class="absolute" style="inset:-5%"></div>
+      <div id="hero-bg" class="absolute inset-0">
+        <div class="animus-grid absolute inset-0"></div>
+        <div class="absolute left-[-50%] right-[-50%] top-[58%] h-[70%]"><div class="animus-floor w-full h-full"></div></div>
+        <div id="frags" class="absolute inset-0"></div>
+        <div class="scan-h"></div>
+        <div class="scan-v"></div>
+      </div>
+      <div class="scanlines absolute inset-0"></div>
+      <div class="vignette absolute inset-0"></div>
+      <div id="leap-particles" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+
+      <!-- HUD -->
+      <div id="hero-hud" class="absolute inset-5 sm:inset-6 lg:inset-10 top-20 sm:top-20 lg:top-20 pointer-events-none">
+        <span class="hud-corner top-0 left-0 border-t border-l"></span>
+        <span class="hud-corner top-0 right-0 border-t border-r"></span>
+        <span class="hud-corner bottom-0 left-0 border-b border-l"></span>
+        <span class="hud-corner bottom-0 right-0 border-b border-r"></span>
+        <div class="hud absolute top-8 left-8 hidden md:block space-y-2">
+          <p>Animus OS · Helix</p>
+          <p class="text-white/55">Abstergo Entertainment</p>
+        </div>
+        <div class="hud absolute top-8 right-8 text-right hidden md:block space-y-2">
+          <p>Сеанс активен</p>
+          <p class="text-white/55 tabular-nums" id="hud-clock">00:00:00</p>
+        </div>
+        <div class="hud absolute bottom-8 left-8 hidden md:block"><p>Архив генетической памяти · все эпохи</p></div>
+        <div class="hud absolute bottom-8 right-8 hidden md:block text-right"><p>15 симуляций · 431 до н.э. → XIX в.</p></div>
+      </div>
+
+      <div id="hero-inner" class="relative z-10 h-full flex flex-col items-center justify-center text-center px-6">
+        <svg id="hero-crest" class="w-20 h-20 md:w-28 md:h-28 mb-7 md:mb-8" viewBox="0 0 100 100" aria-hidden="true">
+          <g class="crest-fill" fill="#ece6da" opacity="0"><use href="#crest"/></g>
+          <path class="crest-stroke" pathLength="1" fill="none" stroke="rgb(150,205,255)" stroke-width=".8" d="M50 6 C40 20 18 52 8 90 C20 81 30 75 38 73 L50 40 L62 73 C70 75 80 81 92 90 C82 52 60 20 50 6 Z"/>
+          <path class="crest-stroke" pathLength="1" fill="none" stroke="rgb(150,205,255)" stroke-width=".8" d="M50 56 L56.5 72 L50 84 L43.5 72 Z"/>
+        </svg>
+        <p class="hero-kicker hud mb-4 opacity-0">Франшиза · 2007 — 2025</p>
+        <h1 class="font-cinzel font-bold leading-[0.95] text-[15vw] xs:text-[13vw] sm:text-7xl lg:text-8xl tracking-[0.04em]">
+          <span class="block text-[0.32em] tracking-[0.6em] text-white/80 font-medium mb-3 hero-line opacity-0">Assassin's</span>
+          <span class="block hero-line opacity-0 bg-gradient-to-b from-white via-bone to-[#a39c90] bg-clip-text text-transparent">CREED</span>
+        </h1>
+        <div class="mt-10 md:mt-12 w-[min(360px,82vw)] hero-sync opacity-0">
+          <div class="flex items-center justify-between gap-4 text-[10px] tracking-[0.3em] uppercase mb-3">
+            <span id="sync-label" class="text-[rgb(170,215,255)] truncate">Синхронизация памяти<span id="sync-dots">...</span></span>
+            <span id="sync-pct" class="tabular-nums text-white/90 shrink-0">0%</span>
+          </div>
+          <div class="sync-bar h-[2px] w-full overflow-hidden"><div id="sync-fill" class="sync-fill h-full w-full" style="transform:scaleX(0)"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="leap-fx-under" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index:4">
+      <div id="an-tint" class="absolute inset-0" style="background:#2b86d6;mix-blend-mode:color;opacity:0"></div>
+      <div id="an-floor" class="an-floor"></div>
+      <div id="an-grid" class="absolute inset-0 an-grid" style="--r:0%"></div>
+      <div id="an-scan" class="an-scan"></div>
+      <div id="an-vscan" class="an-vscan"></div>
+    </div>
+    <div id="leap-fill" class="absolute inset-0 opacity-0 pointer-events-none bg-white" style="z-index:5"></div>
+    <canvas id="leap-canvas" class="absolute inset-0 w-full h-full pointer-events-none" style="z-index:6"></canvas>
+    <div id="leap-fx-mid" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index:6">
+      <div class="an-corner" style="top:10vh;left:5vw;border-top-width:1px;border-left-width:1px"></div>
+      <div class="an-corner" style="top:10vh;right:5vw;border-top-width:1px;border-right-width:1px"></div>
+      <div class="an-corner" style="bottom:8vh;left:5vw;border-bottom-width:1px;border-left-width:1px"></div>
+      <div class="an-corner" style="bottom:8vh;right:5vw;border-bottom-width:1px;border-right-width:1px"></div>
+      <div class="an-hud" style="top:calc(10vh + 60px);left:5vw">ANIMUS OS · HELIX · ABSTERGO</div>
+      <div class="an-hud" style="top:calc(10vh + 80px);left:5vw">АРХИВ ГЕНЕТИЧЕСКОЙ ПАМЯТИ</div>
+      <div class="an-hud" style="bottom:calc(8vh + 80px);right:5vw;text-align:right">ВСЕ ЭПОХИ · 15 СИМУЛЯЦИЙ</div>
+      <div class="an-hud" style="bottom:calc(8vh + 60px);right:5vw;text-align:right">431 ДО Н.Э. → НАШИ ДНИ</div>
+      <div id="an-logo-wrap" class="absolute inset-x-0 flex justify-center" style="top:13vh"></div>
+    </div>
+
+    <div id="leap-tt" class="absolute inset-0 flex flex-col items-center justify-center text-center px-5 pointer-events-none text-white" style="z-index:7;padding-top:24vh">
+      <p id="leap-tt-meta" class="mb-5 text-[10px] md:text-xs uppercase tracking-[0.4em] opacity-0 text-[#4b5563]" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">HELIX SYNC · 0%</p>
+      <h2 id="leap-tt-text" class="font-cinzel font-bold leading-[1] text-[clamp(1.7rem,7vw,6.5rem)] opacity-0">Синхронизация памяти</h2>
+      <div id="leap-tt-line" class="mt-7 h-px w-16 opacity-0 bg-[#0a0a0a]"></div>
+      <p id="leap-tt-quote" class="font-cinzel mt-7 text-lg sm:text-xl md:text-3xl max-w-4xl leading-snug opacity-0 text-[#0a0a0a]">Nothing is true. Everything is permitted.</p>
+      <p id="leap-tt-quote-ru" class="mt-3 text-sm md:text-base tracking-wide opacity-0 text-[#4b5563]">Ничто не истинно. Всё дозволено.</p>
+    </div>
+
+    <div id="leap-veil" aria-hidden="true"></div>
+
+    <div id="hero-hint" class="absolute bottom-8 inset-x-0 flex justify-center pointer-events-none" style="z-index:9">
+      <div class="hint-in flex flex-col items-center gap-4 opacity-0">
+        <div class="mouse"></div>
+        <p class="text-[10px] tracking-[0.35em] uppercase text-white/75 px-6 text-center">Листайте вниз, чтобы войти в архив</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 2. БЕЛАЯ СЕКЦИЯ: все игры ================= -->
+  <section id="games" class="relative bg-white text-neutral-900" aria-labelledby="games-title">
+    <div class="h-[10vh] bg-white"></div>
+    <div class="overflow-hidden select-none" aria-hidden="true">
+      <div class="marquee whitespace-nowrap font-cinzel font-bold text-[15vw] leading-none text-outline-light">ASSASSIN'S CREED — ARCHIVUM — ASSASSIN'S CREED — ARCHIVUM —</div>
+    </div>
+
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12 pt-14 md:pt-20 pb-24 md:pb-32">
+      <div class="reveal flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b border-neutral-200 pb-10">
+        <div class="min-w-0 max-w-3xl">
+          <p class="text-[11px] uppercase tracking-[0.45em] text-neutral-500 mb-5">Архив синхронизаций · 2007 — 2025</p>
+          <h2 id="games-title" class="font-cinzel font-bold text-4xl sm:text-5xl md:text-7xl leading-[1] break-words">Все игры серии</h2>
+          <p class="mt-6 text-base md:text-lg leading-relaxed text-neutral-600">Пятнадцать воспоминаний — от Третьего крестового похода до Японии эпохи Сэнгоку. Выберите игру, чтобы открыть досье, достижения и отзывы игроков.</p>
+        </div>
+        <dl class="grid grid-cols-3 gap-px bg-neutral-200 border border-neutral-200 rounded-2xl overflow-hidden shrink-0 w-full lg:w-auto">
+          <div class="bg-white px-4 sm:px-6 py-5"><dt class="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Игр</dt><dd class="mt-2 font-cinzel font-bold text-2xl sm:text-3xl">15</dd></div>
+          <div class="bg-white px-4 sm:px-6 py-5"><dt class="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Лет</dt><dd class="mt-2 font-cinzel font-bold text-2xl sm:text-3xl">18</dd></div>
+          <div class="bg-white px-4 sm:px-6 py-5"><dt class="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Эпох</dt><dd class="mt-2 font-cinzel font-bold text-2xl sm:text-3xl">13</dd></div>
+        </dl>
+      </div>
+
+      <div id="game-filters" class="reveal mt-8 -mx-4 px-4 sm:mx-0 sm:px-0 flex gap-2 overflow-x-auto no-scrollbar sm:flex-wrap" role="toolbar" aria-label="Фильтр по эпохам"></div>
+
+      <div id="games-grid" class="mt-10 grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-5 lg:gap-6"></div>
+    </div>
+  </section>
+
+  <!-- ================= 3. ПЕРСОНАЖИ (тема переключается на тёмную) ================= -->
+  <section id="characters" class="relative t-bg" aria-labelledby="chars-title">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12 pt-24 md:pt-32 pb-16 md:pb-24">
+      <div class="reveal flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 md:mb-16">
+        <div class="min-w-0 max-w-3xl">
+          <p class="text-[11px] uppercase tracking-[0.45em] t-fg3 mb-5">Лор · Носители кредо</p>
+          <h2 id="chars-title" class="font-cinzel font-bold text-4xl sm:text-5xl md:text-7xl leading-[1] t-fg break-words">Ключевые персонажи</h2>
+        </div>
+        <p class="max-w-md text-base leading-relaxed t-fg2">Наведите курсор (или коснитесь карточки на телефоне), чтобы прочитать краткую биографию героя.</p>
+      </div>
+      <div id="char-grid" class="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-5"></div>
+    </div>
+  </section>
+
+  <!-- ================= 4. КОДЕКС ================= -->
+  <section id="codex" class="relative t-bg" aria-labelledby="codex-title">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-12 pt-16 md:pt-24 pb-24 md:pb-36">
+      <div class="reveal text-center mb-12 md:mb-16">
+        <p class="text-[11px] uppercase tracking-[0.45em] t-fg3 mb-5">Codex Assassinorum</p>
+        <h2 id="codex-title" class="font-cinzel font-bold text-4xl sm:text-5xl md:text-7xl leading-[1] t-fg">Кодекс</h2>
+        <p class="mt-6 max-w-2xl mx-auto text-base md:text-lg leading-relaxed t-fg2">Тысячелетняя война за свободу воли — коротко о главных силах вселенной.</p>
+      </div>
+      <div id="codex-list" class="reveal border-t t-line"></div>
+    </div>
+  </section>
+
+  <footer class="t-bg border-t t-line">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12 py-10 flex flex-col sm:flex-row flex-wrap items-center justify-between gap-4 text-[10px] uppercase tracking-[0.35em] t-fg3 text-center">
+      <span>LIMEN © 2026</span>
+      <span class="font-cinzel normal-case tracking-[0.2em] text-sm t-fg2">Nothing is true. Everything is permitted.</span>
+      <span>Фан-проект · обложки — заглушки</span>
+    </div>
+  </footer>
+</main>
+
+<!-- ================= МОДАЛЬНОЕ ОКНО ИГРЫ ================= -->
+<div id="game-modal" class="fixed inset-0 z-[90] hidden" aria-hidden="true">
+  <div id="gm-backdrop" class="absolute inset-0"></div>
+  <div id="gm-wrap" class="absolute inset-0 flex items-center justify-center">
+    <div id="gm-panel" role="dialog" aria-modal="true" aria-labelledby="gm-title" class="relative rounded-2xl md:rounded-3xl overflow-hidden border border-white/10 text-white flex flex-col">
+      <button id="gm-close" type="button" aria-label="Закрыть" class="absolute top-3 right-3 md:top-5 md:right-5 z-30 w-10 h-10 md:w-11 md:h-11 rounded-full bg-black/60 border border-white/25 text-white flex items-center justify-center transition duration-300 hover:bg-white hover:text-black hover:rotate-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <div id="gm-scroll" class="flex-1 min-h-0 overflow-y-auto">
+        <header id="gm-hero" class="relative h-[230px] sm:h-[300px] md:h-[360px] overflow-hidden">
+          <div id="gm-cover" class="absolute inset-0 bg-cover bg-center"></div>
+          <svg id="gm-fig" class="absolute bottom-0 right-[6%] h-[92%] w-auto opacity-70" viewBox="0 0 400 640" aria-hidden="true"><use href="#assassin"/></svg>
+          <div class="absolute inset-0 bg-gradient-to-t from-[#0f1116] via-[#0f1116]/70 to-black/25"></div>
+          <div class="absolute bottom-0 inset-x-0 p-5 sm:p-8 md:p-10 pr-5 sm:pr-16">
+            <p id="gm-kicker" class="gm-anim text-[10px] md:text-[11px] tracking-[0.32em] uppercase text-white/80 truncate"></p>
+            <h2 id="gm-title" class="gm-anim font-cinzel font-bold text-[clamp(1.5rem,4.6vw,3.75rem)] leading-[1.05] mt-3 line-clamp-2 break-words"></h2>
+            <div id="gm-meta" class="gm-anim mt-4 flex flex-wrap gap-2"></div>
+          </div>
+        </header>
+        <div id="gm-tabs" role="tablist" aria-label="Разделы игры" class="sticky top-0 z-20 bg-[#0f1116]/95 backdrop-blur border-b border-white/10 px-3 sm:px-8 md:px-10 flex gap-1 sm:gap-4 overflow-x-auto no-scrollbar">
+          <button type="button" role="tab" class="gm-tab relative shrink-0 px-3 py-4 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.22em]" data-tab="about" aria-controls="gm-p-about" id="gm-t-about">Об игре</button>
+          <button type="button" role="tab" class="gm-tab relative shrink-0 px-3 py-4 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.22em]" data-tab="ach" aria-controls="gm-p-ach" id="gm-t-ach">Достижения</button>
+          <button type="button" role="tab" class="gm-tab relative shrink-0 px-3 py-4 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.22em]" data-tab="reviews" aria-controls="gm-p-reviews" id="gm-t-reviews">Рецензии</button>
+          <span id="gm-ink" class="absolute bottom-0 left-0 h-[2px] w-0 bg-white" style="transition:transform .45s cubic-bezier(.2,.8,.2,1),width .45s cubic-bezier(.2,.8,.2,1),background-color .3s"></span>
+        </div>
+        <div class="p-4 sm:p-8 md:p-10">
+          <section id="gm-p-about" data-panel="about" role="tabpanel" aria-labelledby="gm-t-about"></section>
+          <section id="gm-p-ach" data-panel="ach" role="tabpanel" aria-labelledby="gm-t-ach" class="hidden"></section>
+          <section id="gm-p-reviews" data-panel="reviews" role="tabpanel" aria-labelledby="gm-t-reviews" class="hidden"></section>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= КНОПКА «НАВЕРХ» ================= -->
+<button id="to-top" type="button" aria-label="Наверх" class="fixed z-[80] right-4 bottom-4 sm:right-6 sm:bottom-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-blood text-white ring-1 ring-white/30 shadow-[0_12px_30px_-8px_rgba(200,16,46,.75)] flex items-center justify-center transition-transform duration-300 hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blood" style="opacity:0;visibility:hidden">
+  <svg class="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 48 48" aria-hidden="true">
+    <circle cx="24" cy="24" r="22" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1.5"/>
+    <circle id="to-top-ring" cx="24" cy="24" r="22" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="138.23" stroke-dashoffset="138.23"/>
+  </svg>
+  <svg class="relative w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<script>
+(() => {
+  'use strict';
+  const hasGSAP = typeof window.gsap !== 'undefined';
+  const hasST = hasGSAP && typeof window.ScrollTrigger !== 'undefined';
+  if (hasST) { gsap.registerPlugin(ScrollTrigger); ScrollTrigger.config({ ignoreMobileResize: true }); }
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  window.scrollTo(0, 0);
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+
+  /* ===================== ДАННЫЕ ===================== */
+  const GROUPS = [
+    ['all', 'Все игры'], ['classic', 'Альтаир и Эцио'], ['kenway', 'Американская сага'],
+    ['revolution', 'Эпоха революций'], ['rpg', 'Мифологическая трилогия'], ['new', 'Новая эра']
+  ];
+
+  /* ach: [название, описание, % игроков, иконка]; rev: [имя, платформа, звёзды, текст] */
+  const GAMES = [
+    { id: 'ac1', title: "Assassin's Creed", short: 'I', year: 2007, place: 'Святая земля · 1191', hero: 'Альтаир ибн Ла-Ахад', dev: 'Ubisoft Montreal', platforms: 'PC · PS3 · Xbox 360', score: 81, c: ['#b08a52', '#2a1d0e'], acc: '#d4af6a', group: 'classic',
+      about: ['Третий крестовый поход. Ассасин Альтаир, лишённый ранга за высокомерие, должен устранить девять тамплиеров в Дамаске, Акре и Иерусалиме, чтобы вернуть доверие Братства.',
+              'Игра, с которой всё началось: свободный паркур по крышам, социальный стелс в толпе, точки обзора и прыжки веры. А в настоящем бывший бармен Дезмонд Майлс переживает память предка в Анимусе.'],
+      ach: [['Девять жертв', 'Устраните всех девятерых тамплиеров из списка Аль-Муалима.', 48, 'blade'], ['Орлиный взор', 'Синхронизируйте все точки обзора в Иерусалиме.', 27, 'eagle'], ['Мастер Масиафа', 'Верните утраченный ранг мастера-ассасина.', 63, 'crest'], ['Тень в толпе', 'Пройдите мимо стражи, укрывшись среди учёных, 10 раз.', 35, 'eye']],
+      rev: [['Дмитрий К.', 'PC', 5, 'Атмосфера Святой земли до сих пор цепляет. Миссии однообразны, но первое восхождение на точку обзора не забыть.'], ['Алина С.', 'Xbox 360', 4, 'Альтаир суровый и холодный, но его путь от гордеца до мудреца — одна из сильнейших арок серии.'], ['Pavel_Mas', 'PS3', 4, 'Графика постарела, а ощущение охоты осталось. Классика, которую стоит пройти хотя бы ради истории.']] },
+
+    { id: 'ac2', title: "Assassin's Creed II", short: 'II', year: 2009, place: 'Флоренция · Венеция · 1476', hero: 'Эцио Аудиторе да Фиренце', dev: 'Ubisoft Montreal', platforms: 'PC · PS3 · Xbox 360', score: 91, c: ['#8a2b1a', '#1a0b06'], acc: '#e2364f', group: 'classic', img: 'ac2.jpeg',
+      about: ['Флоренция, 1476 год. Молодой аристократ Эцио Аудиторе да Фиренце теряет семью в результате заговора могущественных родов Италии — и становится тем, кем его предки были веками: ассасином.',
+              'Крыши Флоренции, каналы Венеции, холмы Тосканы и вилла Монтериджони. Рядом с Эцио — Леонардо да Винчи, создающий для него скрытые клинки и летательную машину.'],
+      ach: [['Крылья Леонардо', 'Пролетите над Венецией на летательной машине да Винчи.', 61, 'feather'], ['Вилла Аудиторе', 'Полностью восстановите Монтериджони.', 37, 'castle'], ['Доспехи Альтаира', 'Соберите шесть печатей древних ассасинов.', 29, 'shield'], ['Скрытый клинок', 'Получите второй скрытый клинок от Леонардо.', 88, 'blade']],
+      rev: [['Марина В.', 'PS3', 5, 'Эцио — лучший герой серии. Рост от юного повесы до мастера-ассасина показан просто идеально.'], ['Ilya_Venezia', 'PC', 5, 'Венецианский карнавал, Леонардо, гробницы ассасинов — каждая минута тут на своём месте.'], ['Олег Т.', 'Xbox 360', 4, 'Экономика виллы к середине игры ломает баланс, но это мелочь на фоне всего остального.']] },
+
+    { id: 'acb', title: "Assassin's Creed Brotherhood", short: 'BR', year: 2010, place: 'Рим · 1499', hero: 'Эцио Аудиторе', dev: 'Ubisoft Montreal', platforms: 'PC · PS3 · Xbox 360', score: 90, c: ['#7a5a2a', '#140d05'], acc: '#e0a84a', group: 'classic',
+      about: ['После падения Монтериджони Эцио приходит в Рим — город, задавленный властью семьи Борджиа. Чтобы вернуть жителям свободу, он возрождает Братство и превращает горожан в ассасинов.',
+              'Вербовка и тренировка учеников, восстановление римских районов, башни Борджиа и первый сетевой режим серии — Brotherhood сделала мир Эцио больше и глубже.'],
+      ach: [['Зов Братства', 'Завербуйте первого ученика-ассасина.', 90, 'crest'], ['Падение башен', 'Сожгите все башни Борджиа в Риме.', 44, 'fire'], ['Ментор', 'Доведите ученика до ранга ассасина.', 38, 'star'], ['Римский меценат', 'Восстановите все акведуки и лавки Рима.', 22, 'coin']],
+      rev: [['Кирилл Н.', 'PS3', 5, 'Призвать учеников одним жестом — до сих пор одно из самых крутых ощущений в играх.'], ['Анна Л.', 'PC', 5, 'Рим огромный и живой. Квесты Леонардо с машинами войны — отдельный восторг.'], ['romulus77', 'Xbox 360', 4, 'Сюжет короче, чем во второй части, зато геймплейно это пик классической трилогии.']] },
+
+    { id: 'acr', title: "Assassin's Creed Revelations", short: 'RV', year: 2011, place: 'Константинополь · 1511', hero: 'Эцио и Альтаир', dev: 'Ubisoft Montreal', platforms: 'PC · PS3 · Xbox 360', score: 80, c: ['#2a5a6a', '#06121a'], acc: '#38bdf8', group: 'classic',
+      about: ['Постаревший Эцио отправляется в Масиаф и Константинополь на поиски библиотеки Альтаира, способной раскрыть главные тайны Братства.',
+              'Крюк-клинок, бомбы собственного изготовления, воспоминания Альтаира в ключах Масиафа и финальная точка в истории двух легендарных ассасинов.'],
+      ach: [['Ключи Масиафа', 'Найдите все пять ключей библиотеки Альтаира.', 54, 'key'], ['Бомбардир', 'Изготовьте 30 бомб разных типов.', 31, 'fire'], ['Крюк-клинок', 'Прокатитесь на крюк-клинке по канатам 50 раз.', 47, 'blade'], ['Прощание', 'Пройдите последнее воспоминание Альтаира.', 58, 'eye']],
+      rev: [['Светлана Р.', 'PS3', 5, 'Финал истории Эцио пробирает до мурашек — особенно последний монолог.'], ['Тимур Б.', 'PC', 4, 'Константинополь красивый, а вот режим защиты логов хочется забыть.'], ['old_mentor', 'Xbox 360', 4, 'Достойное прощание с Эцио и Альтаиром, пусть и с ощущением самоповтора.']] },
+
+    { id: 'ac3', title: "Assassin's Creed III", short: 'III', year: 2012, place: 'Колониальная Америка · 1754', hero: 'Коннор (Ратонхнхакетон)', dev: 'Ubisoft Montreal', platforms: 'PC · PS3 · Xbox 360 · Wii U', score: 85, c: ['#3f5a3a', '#0b1209'], acc: '#86c46e', group: 'kenway',
+      about: ['Сын мохавки и британского тамплиера Ратонхнхакетон берёт имя Коннор и вступает в борьбу за свободу своего народа на фоне Войны за независимость США.',
+              'Охота в бескрайнем Фронтире, паркур по деревьям, морские сражения и развязка истории Дезмонда Майлса — третья часть стала самой масштабной на тот момент.'],
+      ach: [['Дитя Земли', 'Пройдите детство Ратонхнхакетона в долине.', 85, 'feather'], ['Охотник Фронтира', 'Добудьте шкуры всех видов животных.', 19, 'leaf'], ['Капитан «Аквилы»', 'Завершите все морские миссии.', 33, 'ship'], ['Поместье Дэвенпорт', 'Пригласите в поместье всех поселенцев.', 26, 'castle']],
+      rev: [['Никита П.', 'PS3', 4, 'Морские бои — лучшее, что случилось с серией. Пролог за Хэйтема — гениальный ход.'], ['Ольга Д.', 'PC', 4, 'Коннор недооценён: прямой, честный и по-настоящему трагичный герой.'], ['frontier_wolf', 'Wii U', 3, 'Фронтир шикарен, но Бостон и Нью-Йорк слишком плоские для паркура.']] },
+
+    { id: 'acl', title: "Assassin's Creed Liberation", short: 'LB', year: 2012, place: 'Новый Орлеан · 1765', hero: 'Авелин де Грандпре', dev: 'Ubisoft Sofia', platforms: 'PS Vita · PC · PS3 · Xbox 360', score: 70, c: ['#6a2a5a', '#14061a'], acc: '#e879f9', group: 'kenway',
+      about: ['Первая главная героиня серии — Авелин, дочь французского торговца и освобождённой рабыни. Она сражается с тамплиерами в Новом Орлеане и на болотах Луизианы.',
+              'Система трёх образов — аристократка, служанка и ассасин — меняет стиль прохождения: у каждой личины свои возможности и ограничения.'],
+      ach: [['Три лица', 'Используйте все три образа Авелин.', 72, 'mask'], ['Дитя байу', 'Полностью исследуйте болота Луизианы.', 28, 'leaf'], ['Торговая империя', 'Заработайте 100 000 реалов на торговле.', 17, 'coin'], ['Свобода', 'Освободите 50 невольников.', 41, 'key']],
+      rev: [['Катя М.', 'PS Vita', 4, 'Для портативки — настоящее чудо. Авелин заслуживает своей большой игры.'], ['Игорь Ш.', 'PC', 3, 'Ремастер играется бодро, хотя миссии коротковаты.'], ['bayou_queen', 'PS3', 4, 'Система образов свежая и интересная, болота очень атмосферные.']] },
+
+    { id: 'ac4', title: "Assassin's Creed IV: Black Flag", short: 'BF', year: 2013, place: 'Карибское море · 1715', hero: 'Эдвард Кенуэй', dev: 'Ubisoft Montreal', platforms: 'PC · PS3 · PS4 · Xbox 360 · Xbox One · Wii U · Switch', score: 88, c: ['#1f5f7a', '#04121c'], acc: '#22d3ee', group: 'kenway',
+      about: ['Валлийский капер Эдвард Кенуэй становится пиратом, гоняясь за легендарной Обсерваторией. Ассасины и тамплиеры для него поначалу — лишь способ разбогатеть.',
+              'Открытое море, абордажи, подводные погружения, моряцкие песни и Золотой век пиратства — многие игроки до сих пор считают Black Flag лучшей частью серии.'],
+      ach: [['Гроза морей', 'Возьмите на абордаж 20 кораблей.', 52, 'ship'], ['Легенда океана', 'Победите все легендарные корабли.', 11, 'skull'], ['Хор «Галки»', 'Соберите все моряцкие песни.', 23, 'note'], ['Гарпунщик', 'Добудьте гарпуном каждого морского хищника.', 30, 'anchor']],
+      rev: [['Артём Г.', 'PS4', 5, 'Лучшая пиратская игра всех времён. «Галка» под парусом и песни на закате — это любовь.'], ['Юлия Ф.', 'PC', 5, 'Эдвард — обаятельный негодяй с отличной историей взросления.'], ['salty_dog', 'Switch', 4, 'Ассасинского тут меньше, зато свободы — больше, чем где-либо в серии.']] },
+
+    { id: 'acrg', title: "Assassin's Creed Rogue", short: 'RG', year: 2014, place: 'Северная Атлантика · 1752', hero: 'Шэй Патрик Кормак', dev: 'Ubisoft Sofia', platforms: 'PC · PS3 · Xbox 360', score: 72, c: ['#4a6a7a', '#0a1218'], acc: '#a5b8c8', group: 'kenway',
+      about: ['Шэй Кормак разочаровывается в идеалах Братства и переходит на сторону тамплиеров. Впервые в серии игрок охотится на ассасинов.',
+              'Ледяные воды Северной Атлантики, долина реки и Нью-Йорк эпохи Семилетней войны — история, которая мостом соединяет Black Flag и Assassin\'s Creed III.'],
+      ach: [['Отступник', 'Перейдите на сторону тамплиеров.', 80, 'cross'], ['Ледокол', 'Разбейте 25 льдин тараном «Морриган».', 39, 'ship'], ['Охотник на охотников', 'Раскройте 20 засад ассасинов.', 27, 'eye'], ['Картограф', 'Исследуйте все локации Северной Атлантики.', 14, 'compass']],
+      rev: [['Вадим Е.', 'PS3', 4, 'Взгляд со стороны тамплиеров — одна из самых смелых идей серии. Мотивы Шэя понятны.'], ['Наташа К.', 'PC', 3, 'Механики почти целиком из Black Flag, но сюжет того стоит.'], ['templar_cross', 'Xbox 360', 4, 'Короткая, но плотная история. Охотиться на ассасинов непривычно и круто.']] },
+
+    { id: 'acu', title: "Assassin's Creed Unity", short: 'UN', year: 2014, place: 'Париж · 1789', hero: 'Арно Дориан', dev: 'Ubisoft Montreal', platforms: 'PC · PS4 · Xbox One', score: 72, c: ['#3a4a7a', '#080b18'], acc: '#8b9cf8', group: 'revolution',
+      about: ['Французская революция. Арно Дориан, выросший в семье великого магистра тамплиеров, вступает в Братство, чтобы раскрыть заговор, стоящий за убийством приёмного отца.',
+              'Париж почти в натуральную величину, толпы в тысячи человек, переработанный паркур и кооперативные миссии — Unity задала новую планку детализации.'],
+      ach: [['Шпиль Нотр-Дама', 'Поднимитесь на вершину собора Парижской Богоматери.', 76, 'castle'], ['Кафе-театр', 'Восстановите кафе-театр и все клубы.', 24, 'coin'], ['Чёрный ящик', 'Устраните цель, используя уникальную возможность.', 45, 'blade'], ['Братство в сборе', 'Пройдите кооперативную миссию с друзьями.', 33, 'crest']],
+      rev: [['Георгий В.', 'PS4', 4, 'После патчей — одна из самых красивых игр, которые я видел. Нотр-Дам потрясающий.'], ['Лиза А.', 'PC', 4, 'История Арно и Элизы трогательная, а миссии-«чёрные ящики» — лучшие в серии.'], ['revolution_89', 'Xbox One', 3, 'На старте была кошмарно забагована, сейчас играется отлично.']] },
+
+    { id: 'acs', title: "Assassin's Creed Syndicate", short: 'SY', year: 2015, place: 'Лондон · 1868', hero: 'Иви и Джейкоб Фрай', dev: 'Ubisoft Quebec', platforms: 'PC · PS4 · Xbox One', score: 76, c: ['#4f4632', '#100e08'], acc: '#4ade80', group: 'revolution',
+      about: ['Викторианский Лондон в разгар промышленной революции. Близнецы Иви и Джейкоб Фрай собирают банду «Грачи», чтобы отвоевать город у тамплиеров.',
+              'Крюк-кошка, гонки на экипажах, битвы банд и встречи с Диккенсом, Дарвином и Марксом — серия уверенно вернулась в форму после Unity.'],
+      ach: [['Грачи', 'Захватите первый район Лондона.', 84, 'crest'], ['Король Лондона', 'Освободите все районы города.', 29, 'crown'], ['Кучер', 'Выиграйте 10 гонок на экипажах.', 22, 'wheel'], ['Великие умы', 'Выполните задания Дарвина, Диккенса и Маркса.', 37, 'book']],
+      rev: [['Максим Л.', 'PS4', 4, 'Иви — одна из лучших героинь серии. Лондон мрачный и красивый.'], ['Ирина П.', 'PC', 4, 'Крюк-кошка сделала паркур быстрым и весёлым, хоть и немного ленивым.'], ['jack_the_rook', 'Xbox One', 4, 'Дуэт близнецов — отличная находка, их перепалки хочется слушать.']] },
+
+    { id: 'aco', title: "Assassin's Creed Origins", short: 'OR', year: 2017, place: 'Египет · 49 до н.э.', hero: 'Байек из Сивы', dev: 'Ubisoft Montreal', platforms: 'PC · PS4 · Xbox One', score: 81, c: ['#b07a32', '#2a1606'], acc: '#f59e0b', group: 'rpg',
+      about: ['Птолемеевский Египет. Меджай Байек и его жена Айя мстят Ордену Древних за смерть сына — и закладывают основы будущего Братства ассасинов.',
+              'Перезапуск серии в формате RPG: огромный Египет с пирамидами, Александрией и пустынями, новая боевая система, орлица Сену и образовательный режим «Экскурсия».'],
+      ach: [['Незримые', 'Узнайте, как зародилось Братство.', 61, 'crest'], ['Вершина Гизы', 'Поднимитесь на вершину Великой пирамиды.', 74, 'pyramid'], ['Глаз Сену', 'Отметьте 100 целей с помощью орлицы Сену.', 48, 'eagle'], ['Испытание богов', 'Победите одного из богов в испытаниях.', 9, 'eye']],
+      rev: [['Денис О.', 'PS4', 5, 'Байек — самый человечный герой серии. Его горе и любовь к Айе чувствуются в каждой сцене.'], ['Вероника С.', 'PC', 5, 'Египет невероятный. Я часами просто скакала по пустыне и любовалась закатами.'], ['seshat_sun', 'Xbox One', 4, 'RPG-перезапуск удался, хотя гринд уровней местами утомляет.']] },
+
+    { id: 'acod', title: "Assassin's Creed Odyssey", short: 'OD', year: 2018, place: 'Греция · 431 до н.э.', hero: 'Кассандра / Алексиос', dev: 'Ubisoft Quebec', platforms: 'PC · PS4 · Xbox One', score: 83, c: ['#2a6aa0', '#06142a'], acc: '#60a5fa', group: 'rpg',
+      about: ['Пелопоннесская война. Наёмник из Спарты — Кассандра или Алексиос — ищет семью, а находит культ, плетущий заговор против всего греческого мира.',
+              'Выбор в диалогах, романы, морские сражения на «Адрестии», Атлантида и мифические чудовища — самая масштабная и свободная RPG серии.'],
+      ach: [['Спартанский пинок', 'Сбросьте врага с обрыва ударом ноги.', 88, 'boot'], ['Культ разоблачён', 'Раскройте всех членов культа Космоса.', 32, 'mask'], ['Владыка морей', 'Улучшите «Адрестию» до максимума.', 21, 'ship'], ['Убийца чудовищ', 'Одолейте Минотавра, Медузу и Циклопа.', 18, 'skull']],
+      rev: [['Полина Г.', 'PS4', 5, 'Кассандра — легенда. Харизма, юмор и спартанский пинок.'], ['Антон М.', 'PC', 4, 'Огромный мир, мифы, Атлантида — 150 часов пролетают незаметно.'], ['misthios_42', 'Xbox One', 4, 'От ассасинов почти ничего не осталось, но как приключение — шедевр.']] },
+
+    { id: 'acv', title: "Assassin's Creed Valhalla", short: 'VH', year: 2020, place: 'Англия · 873', hero: 'Эйвор', dev: 'Ubisoft Montreal', platforms: 'PC · PS4 · PS5 · Xbox One · Xbox Series X|S', score: 82, c: ['#41525f', '#0a0e14'], acc: '#7dd3fc', group: 'rpg',
+      about: ['Эпоха викингов. Эйвор ведёт клан Ворона из суровой Норвегии в раздробленную Англию, чтобы построить новый дом — мечом или дипломатией.',
+              'Набеги на монастыри, развитие поселения Рейвенсторп, орлог, словесные поединки и Незримые, с которыми Эйвор заключает союз.'],
+      ach: [['Рейвенсторп', 'Отстройте все здания поселения.', 35, 'castle'], ['Мастер набегов', 'Разграбьте 30 монастырей.', 41, 'axe'], ['Скальд', 'Победите во всех словесных поединках.', 24, 'note'], ['Видения Асгарда', 'Пройдите сюжетную арку Асгарда.', 47, 'eye']],
+      rev: [['Егор С.', 'PS5', 4, 'Атмосфера севера и музыка — восторг. Набеги не надоедают.'], ['Мария Ж.', 'PC', 4, 'Эйвор — сильный и спокойный лидер, играть за неё одно удовольствие.'], ['raven_clan', 'Xbox Series X', 3, 'Слишком длинная: к середине Англия начинает повторяться.']] },
+
+    { id: 'acm', title: "Assassin's Creed Mirage", short: 'MR', year: 2023, place: 'Багдад · 861', hero: 'Басим ибн Исхак', dev: 'Ubisoft Bordeaux', platforms: 'PC · PS4 · PS5 · Xbox One · Xbox Series X|S', score: 76, c: ['#8a5a2a', '#1a0e05'], acc: '#fbbf24', group: 'new',
+      about: ['Багдад в золотой век Аббасидского халифата. Уличный вор Басим вступает в ряды Незримых и постигает искусство тихого убийства.',
+              'Возвращение к корням: компактный плотный город, стелс, социальный стелс в толпе и паркур — оммаж первой части в современной обёртке.'],
+      ach: [['Незримый', 'Вступите в ряды Незримых в Аламуте.', 86, 'crest'], ['Тени Багдада', 'Устраните цель, оставшись незамеченным.', 52, 'eye'], ['Карманник', 'Обчистите 100 карманов.', 33, 'coin'], ['Сказки Багдада', 'Завершите все городские истории.', 19, 'book']],
+      rev: [['Рустам Х.', 'PS5', 4, 'Наконец-то снова чувствуешь себя ассасином, а не викингом-полубогом.'], ['Дарья Н.', 'PC', 4, 'Багдад компактный, но плотный и невероятно красивый.'], ['alamut_eagle', 'Xbox Series X', 4, 'Коротко — и это плюс. Отличная игра на пару выходных.']] },
+
+    { id: 'acsh', title: "Assassin's Creed Shadows", short: 'SH', year: 2025, place: 'Япония · 1579', hero: 'Наоэ и Ясукэ', dev: 'Ubisoft Quebec', platforms: 'PC · PS5 · Xbox Series X|S · Mac', score: 81, c: ['#7a1f2a', '#14050a'], acc: '#fb7185', group: 'new',
+      about: ['Япония эпохи Сэнгоку. Синоби Наоэ из провинции Ига и африканский самурай Ясукэ, служивший Оде Нобунаге, объединяют силы против тайного ордена.',
+              'Два героя — два стиля: тень и стелс против стали и силы. Смена времён года, динамическая погода, игра света и укрытий — самая атмосферная Япония в серии.'],
+      ach: [['Путь тени', 'Пройдите регион за Наоэ, оставшись незамеченной.', 39, 'eye'], ['Сталь Ясукэ', 'Победите 10 врагов подряд в бою за Ясукэ.', 44, 'sword'], ['Четыре сезона', 'Сыграйте в каждое время года.', 71, 'leaf'], ['Убежище', 'Полностью отстройте убежище.', 26, 'castle']],
+      rev: [['Арина Ю.', 'PS5', 5, 'Смена сезонов и свет сквозь бумажные стены — визуально это шедевр.'], ['Сергей И.', 'PC', 4, 'Наоэ даёт классический стелс, Ясукэ — мощные бои. Отличный баланс.'], ['sengoku_fan', 'Xbox Series X', 4, 'Лучшая часть со времён Origins. Япония, которую я ждал много лет.']] }
+  ];
+
+  /* Общие достижения: «Прыжок веры» + финал сюжета */
+  GAMES.forEach((g, i) => {
+    g.ach = [
+      ['Прыжок веры', 'Совершите первый прыжок веры с точки обзора.', 82 + (i * 3) % 14, 'eagle'],
+      ...g.ach,
+      ['Requiescat in pace', `Завершите основной сюжет. Герой: ${g.hero}.`, 28 + (i * 7) % 30, 'crest']
+    ];
+  });
+
+  const CHARS = [
+    { name: 'Альтаир ибн Ла-Ахад', game: "AC I · Revelations", years: '1165 — 1257', place: 'Масиаф', ini: 'A', c: ['#5a4224', '#120c06'], acc: '#d4af6a',
+      bio: 'Гроссмейстер, реформировавший Братство после предательства Аль-Муалима. Автор Кодекса, ставшего основой учения ассасинов на века вперёд.' },
+    { name: 'Эцио Аудиторе да Фиренце', game: 'AC II · Brotherhood · Revelations', years: '1459 — 1524', place: 'Флоренция · Рим', ini: 'E', c: ['#6e1f17', '#160605'], acc: '#e2364f',
+      bio: 'Флорентийский аристократ, ставший ментором итальянского Братства. Прошёл путь от мести за семью до возрождения ордена и поисков библиотеки Альтаира.' },
+    { name: 'Ратонхнхакетон (Коннор)', game: 'AC III', years: '1756 — ?', place: 'Фронтир', ini: 'R', c: ['#33492f', '#0a1108'], acc: '#86c46e',
+      bio: 'Сын мохавки и тамплиера Хэйтема Кенуэя. Сражался за свободу своего народа в Войне за независимость, понимая, что победа одних не означает свободы для всех.' },
+    { name: 'Эдвард Кенуэй', game: 'AC IV: Black Flag', years: '1693 — 1735', place: 'Нассау · Карибы', ini: 'K', c: ['#174a60', '#03101a'], acc: '#22d3ee',
+      bio: 'Валлийский капер, ставший пиратом, а затем ассасином. Капитан «Галки», искавший Обсерваторию в Карибском море. Отец Хэйтема и дед Коннора.' },
+    { name: 'Арно Дориан', game: 'AC Unity', years: '1768 — ?', place: 'Париж', ini: 'D', c: ['#2f3b66', '#080b18'], acc: '#8b9cf8',
+      bio: 'Сирота, выросший в доме великого магистра тамплиеров. Вступил в Братство в разгар Французской революции, разрываясь между долгом и любовью к Элизе.' },
+    { name: 'Иви и Джейкоб Фрай', game: 'AC Syndicate', years: '1847 — ?', place: 'Лондон', ini: 'F', c: ['#3c3826', '#0e0c06'], acc: '#4ade80',
+      bio: 'Близнецы из Кроули, освободившие викторианский Лондон от тамплиеров. Иви — стратег и искательница Частиц Эдема, Джейкоб — лидер банды «Грачи».' },
+    { name: 'Байек из Сивы', game: 'AC Origins', years: 'I в. до н.э.', place: 'Египет', ini: 'B', c: ['#8a5a22', '#1f1004'], acc: '#f59e0b',
+      bio: 'Последний меджай Египта. После гибели сына вместе с женой Айей основал Незримых — тайное общество, из которого выросло Братство ассасинов.' },
+    { name: 'Кассандра', game: 'AC Odyssey', years: 'V в. до н.э.', place: 'Спарта · Кефалиния', ini: 'K', c: ['#1f5280', '#05101f'], acc: '#60a5fa',
+      bio: 'Спартанская наёмница, внучка царя Леонида и владелица его сломанного копья. Хранительница посоха Гермеса, прожившая больше двух тысяч лет.' },
+    { name: 'Эйвор Варинсдоттир', game: 'AC Valhalla', years: 'IX в.', place: 'Норвегия · Англия', ini: 'E', c: ['#37454f', '#090c11'], acc: '#7dd3fc',
+      bio: 'Воительница клана Ворона, ведущая свой народ к новой жизни в Англии. Несёт в себе отголосок древнего Ису и заключает союз с Незримыми.' },
+    { name: 'Наоэ и Ясукэ', game: 'AC Shadows', years: 'XVI в.', place: 'Ига · Киото', ini: 'N', c: ['#5f1822', '#120408'], acc: '#fb7185',
+      bio: 'Синоби из провинции Ига и африканский самурай на службе у Оды Нобунаги. Два пути — тень и сталь — в Японии эпохи Сэнгоку.' }
+  ];
+
+  const CODEX = [
+    { title: 'Скрытые', sub: 'Братство ассасинов', ico: 'crest',
+      text: ['Братство ассасинов борется за свободу воли человечества. Его корни уходят к Незримым Байека и Айи в Египте, а классическую форму орден обрёл в крепости Масиаф при Альтаире.',
+             'Ассасины действуют из тени, растворяясь в толпе. Девиз «Ничто не истинно, всё дозволено» — не призыв к вседозволенности, а напоминание: законы и догмы создают люди, и отвечать за свои поступки приходится самому.'],
+      facts: ['Не обагри клинок кровью невиновного', 'Будь незаметен, скрывайся в толпе', 'Не подставляй Братство под удар'] },
+    { title: 'Тамплиеры', sub: 'Орден Отца Понимания', ico: 'cross',
+      text: ['Тамплиеры верят, что мир можно спасти только порядком и контролем. Их предшественником был Орден Древних, а в наши дни их влияние прячется за фасадом корпорации Abstergo Industries.',
+             'Цель ордена — объединить человечество под единой волей и навсегда покончить с хаосом. Для этого тамплиеры веками охотятся за Частицами Эдема.'],
+      facts: ['Девиз: «Да направит нас Отец Понимания»', 'Современный фасад — Abstergo Industries', 'Ищут Частицы Эдема ради контроля'] },
+    { title: 'Яблоко Эдема', sub: 'Частица Эдема', ico: 'apple',
+      text: ['Частицы Эдема — артефакты Ису, древней цивилизации, существовавшей задолго до людей. Самая известная из них — Яблоко, способное подчинять разум и создавать иллюзии.',
+             'Яблоко побывало в руках Аль-Муалима, Альтаира, Эцио и Чезаре Борджиа. Каждый его владелец менял ход истории — к добру или к беде.'],
+      facts: ['Создано Ису — Первой цивилизацией', 'Подчиняет волю и создаёт иллюзии', 'Хранители: Альтаир, Эцио и Братство'] },
+    { title: 'Анимус', sub: 'Abstergo · Helix', ico: 'animus',
+      text: ['Анимус считывает генетическую память — воспоминания предков, записанные в ДНК, — и позволяет пережить их заново как симуляцию.',
+             'От лабораторной капсулы, в которой лежал Дезмонд Майлс, до портативных версий и облачной платформы Helix — Анимус связывает все эпохи серии в одну историю.'],
+      facts: ['Читает память предков из ДНК', 'Десинхронизация — когда симуляция расходится с памятью', 'Helix — облачная версия для всех'] }
+  ];
+
+  /* ===================== ИКОНКИ ===================== */
+  const GLYPH = {
+    blade: 'M14.5 3.5h6v6l-11 11-6-6z M5 15l4 4 M3 21l3-3',
+    sword: 'M14 4h6v6L9 21l-3-3L17 7 M4 16l4 4 M3 21l2-2',
+    eagle: 'M2 12c4-1 6-4 10-8 4 4 6 7 10 8-4 0-7 2-10 6-3-4-6-6-10-6z',
+    eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
+    feather: 'M20 4C12 4 6 10 6 18l-2 2 M6 18c6 0 12-4 14-14 M9 15h5',
+    castle: 'M4 21V9h3V6h2v3h2V6h2v3h2V6h2v3h3v12z M10 21v-5h4v5',
+    shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',
+    fire: 'M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z',
+    star: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z',
+    coin: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M15 9h-4.5a1.5 1.5 0 0 0 0 3h3a1.5 1.5 0 0 1 0 3H9 M12 7v2 M12 15v2',
+    key: 'M7 14a4 4 0 1 1 0-8 4 4 0 0 1 0 8z M10 11l10 10 M16 17l2-2 M14 15l2-2',
+    ship: 'M3 17h18l-2 3H5z M12 3v14 M12 4l6 9h-6 M12 7l-5 6h5',
+    mask: 'M3 6c3 1 6 1 9-1 3 2 6 2 9 1 0 7-3 12-9 12S3 13 3 6z M7.5 10.5h3 M13.5 10.5h3',
+    skull: 'M12 3a8 8 0 0 0-8 8c0 3 2 4 3 5v3h10v-3c1-1 3-2 3-5a8 8 0 0 0-8-8z M9 11h.01 M15 11h.01 M10 19v-2 M14 19v-2',
+    anchor: 'M12 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M12 6v15 M5 13a7 7 0 0 0 14 0 M8 10h8',
+    note: 'M9 18V5l11-2v13 M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0z M20 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z',
+    cross: 'M10 3h4l-1 6 6-1v4l-6-1 1 9h-4l1-9-6 1V8l6 1z',
+    compass: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M15.5 8.5l-2 5-5 2 2-5z',
+    crown: 'M3 19h18 M4 19L3 8l5 4 4-7 4 7 5-4-1 11',
+    wheel: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 3v18 M3 12h18 M5.6 5.6l12.8 12.8 M18.4 5.6L5.6 18.4',
+    book: 'M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2 2 2 0 0 0 2 2h13',
+    pyramid: 'M12 4L2 20h20z M12 4l3 16',
+    boot: 'M7 3h5v9l7 3v5H5V12z',
+    axe: 'M13 4c3 0 7 2 7 7l-4-1-3-3z M14 8L4 18l2 2 10-10',
+    leaf: 'M5 19C5 10 11 4 20 4c0 9-6 15-15 15z M5 19l9-9',
+    apple: 'M12 7c-3-2-8-1-8 5 0 5 3 9 5 9 1 0 2-.6 3-.6s2 .6 3 .6c2 0 5-4 5-9 0-6-5-7-8-5z M12 7c0-2 1-4 3-4',
+    animus: 'M12 2l8.66 5v10L12 22l-8.66-5V7z M12 8l3.46 2v4L12 16l-3.46-2v-4z'
+  };
+  const icon = (name, cls = 'w-6 h-6') => name === 'crest'
+    ? `<svg class="${cls}" viewBox="0 0 100 100" fill="currentColor" aria-hidden="true"><use href="#crest"/></svg>`
+    : `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${GLYPH[name] || GLYPH.star}"/></svg>`;
+
+  const rarity = (r) => r < 10 ? { label: 'Ультраредкое', color: '#f2c94c' }
+    : r < 25 ? { label: 'Редкое', color: '#c4a5ff' }
+    : r < 50 ? { label: 'Необычное', color: '#7cc0ff' }
+    : { label: 'Обычное', color: '#cbd5e1' };
+
+  const coverBg = (g) => `${g.img ? `url('${g.img}'), ` : ''}radial-gradient(120% 80% at 75% 10%, ${g.acc}55 0%, transparent 55%), linear-gradient(160deg, ${g.c[0]} 0%, ${g.c[1]} 78%)`;
+  const initials = (n) => n.replace(/[^A-Za-zА-Яа-яЁё ]/g, '').split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+  const stars = (n) => '★★★★★'.slice(0, n) + '☆☆☆☆☆'.slice(0, 5 - n);
+
+  /* ===================== РЕНДЕР: КАРТОЧКИ ИГР ===================== */
+  const grid = $('#games-grid');
+  grid.innerHTML = GAMES.map((g, i) => `
+    <div class="gc-wrap" data-group="${g.group}">
+      <button type="button" data-game="${g.id}" class="game-card group relative block w-full aspect-[3/4] rounded-2xl overflow-hidden text-left bg-neutral-900 outline-none" style="--acc:${g.acc}" aria-label="Открыть досье: ${g.title}, ${g.year}">
+        <span class="gc-cover absolute inset-0 bg-cover bg-center" style="background-image:${coverBg(g)}"></span>
+        <span class="gc-short absolute -right-1 top-12 font-cinzel font-black text-[5rem] sm:text-[5.5rem] leading-none select-none" aria-hidden="true">${g.short}</span>
+        <svg class="gc-fig absolute bottom-0 left-1/2 h-[74%] w-auto opacity-60" style="--sash:${g.acc};transform:translateX(-50%)" viewBox="0 0 400 640" aria-hidden="true"><use href="#assassin"/></svg>
+        <span class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/10"></span>
+        <span class="absolute top-4 left-4 inline-flex items-center rounded-full bg-black/60 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-white ring-1 ring-white/20 tabular-nums">${g.year}</span>
+        <span class="absolute top-4 right-4 text-[10px] tracking-[0.25em] text-white/80 tabular-nums">№ ${String(i + 1).padStart(2, '0')}</span>
+        <span class="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+          <span class="block text-[10px] tracking-[0.26em] uppercase text-white/80 truncate">${g.place}</span>
+          <span class="block mt-2 font-cinzel font-bold text-lg sm:text-xl leading-tight text-white line-clamp-2 break-words">${g.title}</span>
+          <span class="gc-line block mt-3 h-px" style="background:var(--acc)"></span>
+          <span class="mt-3 flex items-center justify-between gap-3 text-[10px] tracking-[0.2em] uppercase text-white/85">
+            <span class="truncate min-w-0">${g.hero}</span><span class="gc-cta shrink-0" style="color:var(--acc)">Досье →</span>
+          </span>
+        </span>
+      </button>
+    </div>`).join('');
+
+  /* Фильтры */
+  const filters = $('#game-filters');
+  filters.innerHTML = GROUPS.map(([k, label], i) => {
+    const n = k === 'all' ? GAMES.length : GAMES.filter(g => g.group === k).length;
+    return `<button type="button" class="chip shrink-0 ${i === 0 ? 'is-active' : ''}" data-filter="${k}" aria-pressed="${i === 0}">${label}<span class="cnt">${n}</span></button>`;
+  }).join('');
+  filters.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-filter]'); if (!b) return;
+    const k = b.dataset.filter;
+    $$('[data-filter]', filters).forEach(x => { const on = x === b; x.classList.toggle('is-active', on); x.setAttribute('aria-pressed', on); });
+    const show = [];
+    $$('.gc-wrap', grid).forEach(w => {
+      const vis = k === 'all' || w.dataset.group === k;
+      w.style.display = vis ? '' : 'none';
+      if (vis) show.push(w);
+    });
+    if (hasGSAP) gsap.fromTo(show, { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: .6, stagger: .05, ease: 'power3.out', overwrite: true });
+    if (hasST) ScrollTrigger.refresh();
+    scheduleUI();
+  });
+  grid.addEventListener('click', (e) => { const b = e.target.closest('[data-game]'); if (b) openGame(b.dataset.game, b); });
+
+  /* ===================== РЕНДЕР: ПЕРСОНАЖИ ===================== */
+  const charGrid = $('#char-grid');
+  charGrid.innerHTML = CHARS.map(c => `
+    <div class="char-wrap">
+      <button type="button" class="char-card relative block w-full aspect-[3/4] rounded-2xl overflow-hidden text-left outline-none" style="--acc:${c.acc}" aria-expanded="false" aria-label="${c.name} — показать биографию">
+        <span class="absolute inset-0" style="background:radial-gradient(90% 60% at 50% 30%, ${c.acc}40, transparent 70%), linear-gradient(170deg, ${c.c[0]} 0%, ${c.c[1]} 80%)"></span>
+        <span class="char-ghost absolute top-3 left-4 font-cinzel font-black text-[5rem] leading-none select-none" aria-hidden="true">${c.ini}</span>
+        <svg class="char-fig absolute bottom-0 left-1/2 h-[82%] w-auto" style="--sash:${c.acc};transform:translateX(-50%)" viewBox="0 0 400 640" aria-hidden="true"><use href="#assassin"/></svg>
+        <span class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent"></span>
+        <span class="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+          <span class="block text-[10px] tracking-[0.26em] uppercase truncate" style="color:var(--acc)">${c.game}</span>
+          <span class="block mt-2 font-cinzel font-bold text-lg sm:text-xl leading-tight text-white line-clamp-2 break-words">${c.name}</span>
+          <span class="block mt-1 text-xs text-white/75 truncate">${c.years}</span>
+        </span>
+        <span class="char-bio absolute inset-0 p-4 sm:p-5 flex flex-col justify-end text-white" style="background:linear-gradient(180deg, rgba(8,8,11,.78), rgba(8,8,11,.95))">
+          <span class="block text-[10px] tracking-[0.26em] uppercase truncate" style="color:var(--acc)">${c.game}</span>
+          <span class="block mt-2 font-cinzel font-bold text-lg sm:text-xl leading-tight line-clamp-2 break-words">${c.name}</span>
+          <span class="block mt-1 text-xs text-white/75 truncate">${c.years} · ${c.place}</span>
+          <span class="block mt-4 h-px w-10 shrink-0" style="background:var(--acc)"></span>
+          <span class="block mt-4 text-[13px] sm:text-sm leading-relaxed text-white/90 line-clamp-6">${c.bio}</span>
+        </span>
+      </button>
+    </div>`).join('');
+  charGrid.addEventListener('click', (e) => {
+    const card = e.target.closest('.char-card'); if (!card) return;
+    const open = !card.classList.contains('is-open');
+    $$('.char-card.is-open', charGrid).forEach(c => { c.classList.remove('is-open'); c.setAttribute('aria-expanded', 'false'); });
+    card.classList.toggle('is-open', open); card.setAttribute('aria-expanded', String(open));
+  });
+
+  /* ===================== РЕНДЕР: КОДЕКС ===================== */
+  const codexList = $('#codex-list');
+  codexList.innerHTML = CODEX.map((x, i) => `
+    <div class="cx-item border-b t-line">
+      <h3>
+        <button type="button" class="cx-btn w-full flex items-center gap-4 sm:gap-6 py-6 sm:py-8 text-left t-fg" aria-expanded="false" aria-controls="cx-body-${i}" id="cx-btn-${i}">
+          <span class="cx-ico shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full border t-line flex items-center justify-center">${icon(x.ico, 'w-5 h-5 sm:w-6 sm:h-6')}</span>
+          <span class="flex-1 min-w-0">
+            <span class="block text-[10px] tracking-[0.35em] uppercase t-fg3 truncate">${x.sub}</span>
+            <span class="block font-cinzel text-2xl sm:text-3xl md:text-4xl font-bold leading-tight mt-1 break-words">${x.title}</span>
+          </span>
+          <span class="cx-plus relative shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full border t-line" aria-hidden="true"></span>
+        </button>
+      </h3>
+      <div class="cx-body" id="cx-body-${i}" role="region" aria-labelledby="cx-btn-${i}">
+        <div class="pb-8 sm:pb-10 sm:pl-20 grid md:grid-cols-[1.5fr_1fr] gap-6 md:gap-10">
+          <div class="space-y-4">${x.text.map(p => `<p class="cx-anim text-[15px] md:text-base leading-relaxed t-fg2">${p}</p>`).join('')}</div>
+          <ul class="space-y-2">${x.facts.map(f => `<li class="cx-anim flex gap-3 items-start rounded-xl border t-line t-surface px-4 py-3 text-sm leading-snug t-fg2"><span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-blood shrink-0"></span><span>${f}</span></li>`).join('')}</ul>
+        </div>
+      </div>
+    </div>`).join('');
+
+  const refresh = () => { if (hasST) ScrollTrigger.refresh(); scheduleUI(); };
+  function toggleCx(item, open) {
+    const body = $('.cx-body', item), btn = $('.cx-btn', item);
+    item.classList.toggle('is-open', open);
+    btn.setAttribute('aria-expanded', String(open));
+    if (!hasGSAP) { body.style.height = open ? 'auto' : '0px'; return; }
+    gsap.killTweensOf(body);
+    if (open) {
+      gsap.fromTo(body, { height: body.offsetHeight }, { height: 'auto', duration: .6, ease: 'power3.inOut', onComplete: refresh });
+      gsap.fromTo($$('.cx-anim', body), { y: 14, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: .5, stagger: .06, delay: .15, ease: 'power2.out' });
+    } else {
+      gsap.to(body, { height: 0, duration: .5, ease: 'power3.inOut', onComplete: refresh });
+    }
+  }
+  codexList.addEventListener('click', (e) => {
+    const btn = e.target.closest('.cx-btn'); if (!btn) return;
+    const item = btn.closest('.cx-item');
+    const open = !item.classList.contains('is-open');
+    $$('.cx-item.is-open', codexList).forEach(it => { if (it !== item) toggleCx(it, false); });
+    toggleCx(item, open);
+  });
+  /* Первый пункт открыт по умолчанию */
+  const firstCx = $('.cx-item', codexList);
+  firstCx.classList.add('is-open'); $('.cx-btn', firstCx).setAttribute('aria-expanded', 'true'); $('.cx-body', firstCx).style.height = 'auto';
+
+  /* ===================== МОДАЛЬНОЕ ОКНО ===================== */
+  const modal = $('#game-modal'), panel = $('#gm-panel'), backdrop = $('#gm-backdrop'), wrap = $('#gm-wrap'), scroller = $('#gm-scroll');
+  let modalOpen = false, modalAnim = null, lastFocus = null, currentGame = null;
+
+  function renderModal(g) {
+    currentGame = g;
+    panel.style.setProperty('--acc', g.acc);
+    $('#gm-cover').style.backgroundImage = coverBg(g);
+    $('#gm-fig').style.setProperty('--sash', g.acc);
+    $('#gm-kicker').textContent = `${g.dev} · ${g.place}`;
+    $('#gm-title').textContent = g.title;
+    $('#gm-meta').innerHTML = [
+      `<span class="gm-chip">${g.year}</span>`,
+      `<span class="gm-chip" style="border-color:${g.acc}">Metascore ≈ ${g.score}</span>`,
+      `<span class="gm-chip">${g.hero}</span>`
+    ].join('');
+    $('#gm-ink').style.backgroundColor = g.acc;
+
+    const facts = [['Год выхода', g.year], ['Разработчик', g.dev], ['Сеттинг', g.place], ['Главный герой', g.hero], ['Платформы', g.platforms]];
+    $('#gm-p-about').innerHTML = `
+      <div class="grid lg:grid-cols-[1.6fr_1fr] gap-6 md:gap-10">
+        <div class="min-w-0">
+          <p class="gm-item text-[10px] uppercase tracking-[0.35em] mb-4" style="color:${g.acc}">Досье игры</p>
+          <div class="space-y-5">${g.about.map(p => `<p class="gm-item text-[15px] md:text-lg leading-relaxed text-[#e4e7ee]">${p}</p>`).join('')}</div>
+          <blockquote class="gm-item mt-8 border-l-2 pl-5 font-cinzel text-lg md:text-2xl leading-snug text-white" style="border-color:${g.acc}">Nothing is true. Everything is permitted.</blockquote>
+        </div>
+        <aside class="gm-item gm-card rounded-2xl p-5 md:p-6 self-start">
+          <div class="flex items-end justify-between gap-4 pb-5 border-b border-white/10">
+            <div><div class="text-[10px] uppercase tracking-[0.3em] text-[#aab1bd]">Metascore</div><div class="font-cinzel font-bold text-5xl leading-none mt-2" style="color:${g.acc}">${g.score}</div></div>
+            <div class="text-right text-[11px] text-[#aab1bd] leading-snug">приблизительно,<br>лучшая платформа</div>
+          </div>
+          <dl class="divide-y divide-white/10">${facts.map(([k, v]) => `
+            <div class="py-3 grid grid-cols-[110px_1fr] gap-3"><dt class="text-[10px] uppercase tracking-[0.22em] text-[#aab1bd] pt-0.5">${k}</dt><dd class="text-sm text-white break-words">${v}</dd></div>`).join('')}
+          </dl>
+        </aside>
+      </div>`;
+
+    $('#gm-p-ach').innerHTML = `
+      <div class="gm-item flex flex-wrap items-end justify-between gap-3 mb-6">
+        <div><p class="text-[10px] uppercase tracking-[0.35em] mb-2" style="color:${g.acc}">Достижения</p><h3 class="font-cinzel text-2xl md:text-3xl font-bold text-white">${g.ach.length} целей синхронизации</h3></div>
+        <p class="text-xs text-[#aab1bd]">% — доля игроков, получивших достижение</p>
+      </div>
+      <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">${g.ach.map(([t, d, r, ic], i) => {
+        const rr = rarity(r);
+        return `
+        <div class="gm-item gm-card rounded-2xl p-4 flex gap-4">
+          <span class="ach-ico relative shrink-0 w-14 h-14 rounded-xl flex items-center justify-center text-white" style="background:linear-gradient(135deg, ${g.acc} 0%, #12141a 88%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2), 0 10px 24px -12px ${g.acc}">
+            ${icon(ic, 'w-6 h-6')}
+            <span class="absolute -bottom-1.5 -right-1.5 min-w-[22px] h-[22px] px-1 rounded-full bg-[#0f1116] border border-white/25 text-[9px] font-bold flex items-center justify-center text-white">${['I','II','III','IV','V','VI','VII','VIII'][i]}</span>
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block font-semibold text-white leading-snug line-clamp-2">${t}</span>
+            <span class="block mt-1.5 text-sm text-[#c4c9d4] leading-snug line-clamp-2">${d}</span>
+            <span class="mt-3 block h-1.5 rounded-full bg-white/10 overflow-hidden"><span class="ach-bar block h-full rounded-full origin-left" style="width:${r}%;background:${g.acc}"></span></span>
+            <span class="mt-2 flex items-center justify-between gap-2 text-[11px]"><span class="truncate font-semibold" style="color:${rr.color}">${rr.label}</span><span class="tabular-nums text-[#c4c9d4] shrink-0">${r}%</span></span>
+          </span>
+        </div>`; }).join('')}
+      </div>`;
+
+    const avg = (g.rev.reduce((s, r) => s + r[2], 0) / g.rev.length).toFixed(1);
+    $('#gm-p-reviews').innerHTML = `
+      <div class="gm-item flex flex-wrap items-end justify-between gap-4 mb-6">
+        <div><p class="text-[10px] uppercase tracking-[0.35em] mb-2" style="color:${g.acc}">Рецензии игроков</p><h3 class="font-cinzel text-2xl md:text-3xl font-bold text-white">Что говорят ассасины</h3></div>
+        <div class="flex items-center gap-3"><span class="font-cinzel font-bold text-4xl text-white">${avg}</span><span><span class="block text-amber-300 tracking-[0.15em]" aria-label="Средняя оценка ${avg} из 5">${stars(Math.round(avg))}</span><span class="block text-[11px] text-[#aab1bd]">средняя оценка · ${g.rev.length} отзыва</span></span></div>
+      </div>
+      <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">${g.rev.map(([n, p, s, t]) => `
+        <article class="gm-item gm-card rounded-2xl p-5 md:p-6 flex flex-col">
+          <header class="flex items-center gap-3 min-w-0">
+            <span class="shrink-0 w-11 h-11 rounded-full flex items-center justify-center font-semibold text-white text-sm" style="background:linear-gradient(135deg, ${g.acc}, #2a2d36);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)">${initials(n) || '?'}</span>
+            <span class="min-w-0 flex-1"><span class="block font-semibold text-white truncate">${n}</span><span class="block text-xs text-[#aab1bd] truncate">${p} · игрок</span></span>
+            <span class="shrink-0 text-amber-300 text-sm tracking-[0.1em]" aria-label="Оценка ${s} из 5">${stars(s)}</span>
+          </header>
+          <p class="mt-4 text-[15px] leading-relaxed text-[#dfe3ea]">«${t}»</p>
+        </article>`).join('')}
+      </div>`;
+  }
+
+  function moveInk() {
+    const t = $('.gm-tab[aria-selected="true"]'); const ink = $('#gm-ink');
+    if (!t) return;
+    ink.style.width = t.offsetWidth + 'px';
+    ink.style.transform = `translateX(${t.offsetLeft}px)`;
+  }
+  function setTab(name, instant = false) {
+    $$('.gm-tab').forEach(t => { const on = t.dataset.tab === name; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; });
+    $$('[data-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.panel !== name));
+    moveInk();
+    const p = $(`[data-panel="${name}"]`);
+    const tabs = $('#gm-tabs');
+    if (!instant && scroller.scrollTop > tabs.offsetTop) scroller.scrollTo({ top: tabs.offsetTop, behavior: 'smooth' });
+    if (hasGSAP) {
+      gsap.fromTo($$('.gm-item', p), { y: 18, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: .5, stagger: .04, ease: 'power3.out', delay: instant ? .25 : 0, overwrite: true });
+      const bars = $$('.ach-bar', p);
+      if (bars.length) gsap.fromTo(bars, { scaleX: 0 }, { scaleX: 1, duration: 1.1, stagger: .05, ease: 'power3.out', delay: .2 });
+    }
+  }
+  $('#gm-tabs').addEventListener('click', (e) => { const t = e.target.closest('.gm-tab'); if (t) setTab(t.dataset.tab); });
+  $('#gm-tabs').addEventListener('keydown', (e) => {
+    if (!['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+    const tabs = $$('.gm-tab'); const i = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true');
+    const n = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+    setTab(n.dataset.tab); n.focus();
+  });
+
+  function lockScroll(on) {
+    const sbw = window.innerWidth - document.documentElement.clientWidth;
+    document.documentElement.classList.toggle('is-locked', on);
+    const pad = on && sbw > 0 ? sbw + 'px' : '';
+    document.body.style.paddingRight = pad;
+    $('#site-header').style.paddingRight = pad;
+  }
+
+  function openGame(id, opener) {
+    const g = GAMES.find(x => x.id === id); if (!g) return;
+    renderModal(g);
+    lastFocus = opener || document.activeElement;
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    lockScroll(true);
+    scroller.scrollTop = 0;
+    setTab('about', true);
+    modalOpen = true;
+    if (hasGSAP) {
+      if (modalAnim) modalAnim.kill();
+      modalAnim = gsap.timeline()
+        .fromTo(backdrop, { opacity: 0 }, { opacity: 1, duration: .4, ease: 'power2.out' })
+        .fromTo(panel, { opacity: 0, y: 40, scale: .96 }, { opacity: 1, y: 0, scale: 1, duration: .55, ease: 'power3.out' }, .05)
+        .fromTo('#gm-cover', { scale: 1.12 }, { scale: 1, duration: 1.2, ease: 'power3.out' }, .05)
+        .fromTo('.gm-anim', { y: 24, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: .5, stagger: .07, ease: 'power3.out' }, .2);
+    }
+    setTimeout(() => { moveInk(); $('#gm-close').focus({ preventScroll: true }); }, 60);
+  }
+
+  function closeGame() {
+    if (!modalOpen) return;
+    modalOpen = false;
+    const done = () => {
+      modal.classList.add('hidden');
+      modal.setAttribute('aria-hidden', 'true');
+      lockScroll(false);
+      if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+    };
+    if (hasGSAP) {
+      if (modalAnim) modalAnim.kill();
+      modalAnim = gsap.timeline({ onComplete: done })
+        .to(panel, { opacity: 0, y: 30, scale: .97, duration: .3, ease: 'power2.in' })
+        .to(backdrop, { opacity: 0, duration: .3, ease: 'power2.in' }, .08);
+    } else done();
+  }
+
+  $('#gm-close').addEventListener('click', closeGame);
+  backdrop.addEventListener('click', closeGame);
+  wrap.addEventListener('click', (e) => { if (e.target === wrap) closeGame(); });
+  document.addEventListener('keydown', (e) => {
+    if (!modalOpen) return;
+    if (e.key === 'Escape') { e.preventDefault(); closeGame(); return; }
+    if (e.key === 'Tab') { /* ловушка фокуса внутри модалки */
+      const f = $$('button, [href], [tabindex]:not([tabindex="-1"])', panel).filter(el => !el.closest('.hidden') && el.offsetParent !== null);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  });
+  window.addEventListener('resize', () => { if (modalOpen) moveInk(); });
+
+  /* ===================== HERO: HUD, фрагменты, частицы ===================== */
+  const clock = $('#hud-clock');
+  const tick = () => { clock.textContent = new Date().toLocaleTimeString('ru-RU'); };
+  tick(); setInterval(tick, 1000);
+
+  const fragsBox = $('#frags');
+  for (let i = 0; i < 26; i++) {
+    const f = document.createElement('span');
+    f.className = 'frag';
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    Object.assign(f.style, { width: Math.round(rnd(14, 140)) + 'px', height: Math.round(rnd(1, 6)) + 'px', left: rnd(2, 95) + '%', top: rnd(4, 94) + '%' });
+    fragsBox.appendChild(f);
+    if (hasGSAP) gsap.to(f, {
+      opacity: () => gsap.utils.random(.2, .9), x: () => gsap.utils.random(-30, 30),
+      duration: () => gsap.utils.random(.08, .25), repeat: -1, yoyo: true,
+      repeatDelay: () => gsap.utils.random(.4, 3.5), delay: gsap.utils.random(0, 3), ease: 'steps(2)'
+    });
+  }
+
+  (function spawnParticles(el, n, color) {
+    for (let i = 0; i < n; i++) {
+      const s = document.createElement('span');
+      const size = Math.random() * 3 + 1, dur = 8 + Math.random() * 10;
+      s.className = 'ptc';
+      s.style.cssText = `left:${Math.random() * 100}%;width:${size}px;height:${size}px;animation-duration:${dur}s;animation-delay:${-Math.random() * dur}s;--dx:${(Math.random() - .5) * 220}px;background:${color};box-shadow:0 0 ${size * 4}px ${color};`;
+      el.appendChild(s);
+    }
+  })($('#leap-particles'), 18, 'rgba(120,210,255,.9)');
+
+  /* Логотип Анимуса: пиксельная маска + морфинг квадрата в герб */
+  const AN_SQUARE = 'M100 40 C100 40 160 40 160 40 L160 160 C160 160 100 160 100 160 C100 160 40 160 40 160 L40 40 C40 40 100 40 100 40 Z';
+  const AN_CREST  = 'M100 14 C80 56 46 128 22 186 L62 186 C76 146 88 112 100 86 C112 112 124 146 138 186 L178 186 C154 128 120 56 100 14 Z';
+  let px = '';
+  for (let y = 0; y < 20; y++) for (let x = 0; x < 20; x++) px += `<rect x="${x * 10}" y="${y * 10}" width="10.6" height="10.6" fill="#fff" style="opacity:0"/>`;
+  $('#an-logo-wrap').innerHTML = `
+    <svg id="an-logo" viewBox="0 0 200 200" style="width:min(28vh,42vw);height:min(28vh,42vw);overflow:visible" aria-hidden="true">
+      <defs><mask id="an-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200"><g id="an-pixels">${px}</g></mask></defs>
+      <g mask="url(#an-mask)">
+        <path class="an-rgb an-r" d="${AN_SQUARE}" fill="#ff2a4a" style="mix-blend-mode:screen;opacity:0.75"/>
+        <path class="an-rgb an-c" d="${AN_SQUARE}" fill="#28d7ff" style="mix-blend-mode:screen;opacity:0.75"/>
+        <path id="an-crest" d="${AN_SQUARE}" fill="#e8f6ff"/>
+        <path id="an-diamond" d="M100 118 L110 142 L100 162 L90 142 Z" fill="#e8f6ff"/>
+      </g>
+    </svg>`;
+
+  /* Canvas: экран распадается на светящиеся блоки и становится белой комнатой (scrub) */
+  const FX = (() => {
+    const cv = $('#leap-canvas'); const ctx = cv.getContext('2d');
+    const state = { p: 0 };
+    let w = 0, h = 0, raf = 0, cells = [], cs = 44, t0 = 0, cleared = false;
+    function build() {
+      cells = [];
+      const cols = Math.ceil(w / cs), rows = Math.ceil(h / cs), cx = w / 2, cy = h / 2, dmax = Math.hypot(cx, cy);
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        const x = c * cs, y = r * cs, dist = Math.hypot(x + cs / 2 - cx, y + cs / 2 - cy) / dmax;
+        cells.push({ x, y, th: 0.3 + 0.4 * dist + Math.random() * 0.14, f: Math.random() * 100 });
+      }
+    }
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = cv.clientWidth || window.innerWidth; h = cv.clientHeight || window.innerHeight;
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); build();
+    }
+    function frame(now) {
+      raf = requestAnimationFrame(frame);
+      const p = state.p, t = (now - t0) / 1000;
+      if (p >= 0.999) { if (!cleared) { ctx.clearRect(0, 0, w, h); cleared = true; } return; }
+      cleared = false;
+      ctx.clearRect(0, 0, w, h);
+      if (p < 0.1) return;
+      for (const c of cells) {
+        const a = clamp((p - c.th) / 0.07);
+        if (a > 0) {
+          ctx.fillStyle = `rgba(238,246,255,${a})`; ctx.fillRect(c.x + 1, c.y + 1, cs - 2, cs - 2);
+          if (a < 1) { ctx.strokeStyle = `rgba(90,200,255,${(1 - a) * 0.9})`; ctx.lineWidth = 1; ctx.strokeRect(c.x + 1.5, c.y + 1.5, cs - 3, cs - 3); }
+        } else if (p > 0.14 && Math.sin(t * 7 + c.f) > 0.992) {
+          ctx.fillStyle = 'rgba(90,200,255,0.22)'; ctx.fillRect(c.x + 1, c.y + 1, cs - 2, cs - 2);
+        }
+      }
+    }
+    return { state, start() { resize(); t0 = performance.now(); if (!raf) raf = requestAnimationFrame(frame); }, resize };
+  })();
+  window.addEventListener('resize', () => FX.resize());
+
+  function shakeFrames(n, amp, total) {
+    const d = total / (n + 1), frames = [];
+    for (let i = 0; i < n; i++) frames.push({ x: (Math.random() - 0.5) * 2 * amp, skewX: (Math.random() - 0.5) * 6, duration: d, ease: 'none' });
+    frames.push({ x: 0, skewX: 0, duration: d, ease: 'none' });
+    return frames;
+  }
+
+  /* ===================== ИНТРО: загрузка Анимуса ===================== */
+  const pct = $('#sync-pct'), dots = $('#sync-dots');
+  let dotTick = 0;
+  const dotTimer = setInterval(() => { dots.textContent = '.'.repeat(dotTick++ % 4); }, 380);
+  const finishSync = () => { clearInterval(dotTimer); $('#sync-label').textContent = 'Синхронизация завершена'; pct.textContent = '100%'; };
+
+  if (hasGSAP) {
+    const sync = { v: 0 };
+    gsap.timeline({ delay: .3 })
+      .to('.crest-stroke', { strokeDashoffset: 0, duration: 1.6, ease: 'power2.inOut', stagger: .2 })
+      .to('.hero-kicker', { opacity: 1, duration: .6 }, .5)
+      .fromTo('.hero-line', { opacity: 0, y: 30, filter: 'blur(12px)', letterSpacing: '0.3em' },
+        { opacity: 1, y: 0, filter: 'blur(0px)', letterSpacing: (i) => i === 0 ? '0.6em' : '0.04em', duration: 1.3, ease: 'power3.out', stagger: .15 }, .7)
+      .to('.hero-sync', { opacity: 1, duration: .5 }, 1.1)
+      .to('#sync-fill', { scaleX: 1, duration: 2.6, ease: 'power1.inOut' }, 1.2)
+      .to(sync, { v: 100, duration: 2.6, ease: 'power1.inOut', onUpdate: () => { pct.textContent = Math.round(sync.v) + '%'; } }, 1.2)
+      .to('.crest-fill', { opacity: 1, duration: 1, ease: 'power2.out' }, 2.6)
+      .to('.crest-stroke', { opacity: 0, duration: .8 }, 3.2)
+      .add(finishSync, 3.8)
+      .to('.hint-in', { opacity: 1, duration: .8 }, 3.9);
+  } else {
+    $$('.hero-kicker, .hero-line, .hero-sync, .hint-in, .crest-fill').forEach(el => { el.style.opacity = 1; });
+    $('#sync-fill').style.transform = 'scaleX(1)';
+    finishSync();
+  }
+
+  /* ===================== ПЕРЕХОД ПО СКРОЛЛУ (как на странице AC2) ===================== */
+  let leapTL = null, leapWhite = false;
+  if (hasST) {
+    const W = () => window.innerWidth, H = () => window.innerHeight;
+    let leapLen = 1.6;
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: '#leap', start: 'top top',
+        end: () => `+=${Math.round(window.innerHeight * 2.5 * leapLen)}`,
+        pin: true, pinSpacing: true, scrub: true, anticipatePin: 1, invalidateOnRefresh: true, fastScrollEnd: true
+      },
+      onUpdate: () => {
+        FX.state.p = clamp(tl.time());
+        const white = tl.time() > 0.84;
+        if (white !== leapWhite) { leapWhite = white; scheduleUI(); }
+      }
+    });
+    leapTL = tl;
+
+    /* Выход из загрузочного экрана */
+    tl.fromTo('#hero-hint', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.06, ease: 'none', immediateRender: false }, 0)
+      .fromTo('#hero-inner', { scale: 1, autoAlpha: 1, filter: 'blur(0px)' }, { scale: 1.15, autoAlpha: 0, filter: 'blur(10px)', duration: 0.24, ease: 'power1.in', immediateRender: false }, 0)
+      .fromTo('#hero-hud', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.12, ease: 'none', immediateRender: false }, 0.02)
+      .fromTo('#hero-bg', { opacity: 1 }, { opacity: 0.35, duration: 0.3, ease: 'none', immediateRender: false }, 0)
+      .fromTo('#leap-bg', { scale: 1 }, { scale: 1.12, duration: 1, ease: 'none' }, 0);
+
+    /* Анимус: сетка, сканеры, HUD, пиксельный логотип */
+    const sync = { v: 0 };
+    const meta = $('#leap-tt-meta');
+    tl.fromTo('#leap-bg', { filter: 'grayscale(0) brightness(1) contrast(1)' }, { filter: 'grayscale(1) brightness(0.55) contrast(1.3)', duration: 0.35, ease: 'none' }, 0.02)
+      .to('#an-tint', { opacity: 0.85, duration: 0.3, ease: 'none' }, 0.04)
+      .to('#an-grid', { '--r': '115%', duration: 0.4, ease: 'power1.in' }, 0.06)
+      .to('#an-floor', { opacity: 1, duration: 0.25, ease: 'none' }, 0.12)
+      .fromTo('#an-scan', { y: -170 }, { y: () => H() + 10, duration: 0.13, repeat: 2, ease: 'none' }, 0.06)
+      .fromTo('#an-vscan', { x: -170 }, { x: () => W() + 10, duration: 0.2, ease: 'none' }, 0.25)
+      .fromTo('.an-corner', { scale: 1.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.08, stagger: 0.02, ease: 'power3.out' }, 0.1)
+      .fromTo('.an-hud', { clipPath: 'inset(0% 100% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.12, stagger: 0.04, ease: 'none' }, 0.14)
+      .fromTo('#an-pixels rect', { opacity: 0 }, { opacity: 1, duration: 0.02, stagger: { amount: 0.22, from: 'random' }, ease: 'none' }, 0.26)
+      .fromTo('#an-logo-wrap', { scale: 1.25 }, { scale: 1, duration: 0.3, ease: 'power2.out' }, 0.26)
+      .to('#an-crest, .an-rgb', { attr: { d: AN_CREST }, duration: 0.22, ease: 'power2.inOut' }, 0.3)
+      .to('.an-r', { keyframes: shakeFrames(10, 8, 0.25) }, 0.28)
+      .to('.an-c', { keyframes: shakeFrames(10, 8, 0.25) }, 0.28)
+      .to('.an-rgb', { opacity: 0, duration: 0.08, ease: 'none' }, 0.6)
+      .fromTo('#an-crest, #an-diamond', { fill: '#e8f6ff' }, { fill: '#141414', duration: 0.12, ease: 'none' }, 0.5)
+      .fromTo('#an-logo', { filter: 'drop-shadow(0px 0px 12px rgba(80,190,255,0.8))' }, { filter: 'drop-shadow(0px 0px 0px rgba(80,190,255,0))', duration: 0.12, ease: 'none' }, 0.5)
+      .to('.an-corner, .an-hud', { opacity: 0, duration: 0.08, ease: 'none' }, 0.7)
+      .to(sync, { v: 100, duration: 0.4, ease: 'none', onUpdate: () => { meta.textContent = `HELIX SYNC · ${Math.round(sync.v)}%`; } }, 0.45);
+
+    /* Белая заливка + текст перехода */
+    tl.fromTo('#leap-fill', { opacity: 0 }, { opacity: 1, duration: 0.1, ease: 'power1.inOut', immediateRender: false }, 0.8)
+      .fromTo('#leap-tt-meta', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.12, ease: 'power2.out' }, 0.57)
+      .fromTo('#leap-tt-text', { opacity: 0, y: 60, scale: 0.92, letterSpacing: '0.2em' }, { opacity: 1, y: 0, scale: 1, letterSpacing: '0.04em', duration: 0.2, ease: 'power2.out' }, 0.6)
+      .fromTo('#leap-tt-text', { color: '#ffffff', textShadow: '0px 10px 40px rgba(0,0,0,0.55)' }, { color: '#0a0a0a', textShadow: '0px 0px 0px rgba(0,0,0,0)', duration: 0.1, ease: 'none' }, 0.5)
+      .fromTo('#leap-tt-meta', { color: 'rgba(170,215,255,.95)' }, { color: '#4b5563', duration: 0.1, ease: 'none' }, 0.8)
+      .fromTo('#leap-tt-line, #leap-tt-quote, #leap-tt-quote-ru', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.1, stagger: 0.03, ease: 'power2.out' }, 0.86);
+    if (tl.duration() < 1) tl.set({}, {}, 1);
+
+    /* Финал: белый оверлей поднимается снизу, перекрывает экран — и только тогда пин отпускается */
+    const veilAt = tl.duration() + 0.1;
+    tl.fromTo('#leap-veil', { y: 0, yPercent: 100 }, { y: 0, yPercent: -28.6, duration: 0.42, ease: 'none', immediateRender: true }, veilAt)
+      .to({}, { duration: 0.06 });
+    leapLen = tl.duration();
+    FX.start();
+
+    /* Прогресс страницы */
+    gsap.to('#page-progress', { scaleX: 1, ease: 'none', scrollTrigger: { trigger: document.documentElement, start: 'top top', end: 'bottom bottom', scrub: 0.3 } });
+
+    /* Бегущая строка в белой секции */
+    gsap.fromTo('.marquee', { xPercent: 0 }, { xPercent: -35, ease: 'none', scrollTrigger: { trigger: '.marquee', start: 'top bottom', end: 'bottom top', scrub: true } });
+
+    /* Появление блоков */
+    gsap.utils.toArray('.reveal').forEach(el => {
+      gsap.fromTo(el, { y: 50, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 1, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 88%', once: true } });
+    });
+    gsap.set('.gc-wrap, .char-wrap', { autoAlpha: 0, y: 50 });
+    ScrollTrigger.batch('.gc-wrap, .char-wrap', {
+      start: 'top 92%', once: true,
+      onEnter: (batch) => gsap.to(batch, { autoAlpha: 1, y: 0, duration: .9, stagger: .08, ease: 'power3.out', overwrite: true })
+    });
+
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => ScrollTrigger.refresh());
+    window.addEventListener('load', () => ScrollTrigger.refresh());
+  } else {
+    /* Без GSAP: статичный экран загрузки, переход не нужен */
+    $('#leap-tt').style.display = 'none';
+  }
+
+  /* ===================== ТЕМА, ШАПКА, КНОПКА «НАВЕРХ» ===================== */
+  const header = $('#site-header'), toTop = $('#to-top'), ring = $('#to-top-ring');
+  const RING = 138.23;
+  let topVisible = false, uiQueued = false;
+
+  function updateUI() {
+    uiQueued = false;
+    const y = window.scrollY, vh = window.innerHeight;
+    /* Тема страницы: персонажи и кодекс «гасят свет» — фон и текст плавно меняются */
+    const chTop = $('#characters').getBoundingClientRect().top;
+    const pageTheme = chTop < vh * 0.55 ? 'dark' : 'light';
+    if (document.body.dataset.theme !== pageTheme) document.body.dataset.theme = pageTheme;
+
+    /* Шапка подстраивается под фон под ней */
+    const probe = 32;
+    const leapEnd = leapTL ? leapTL.scrollTrigger.end : 0;
+    let headerTheme, hasBg;
+    if (leapTL && y < leapEnd - 1) { headerTheme = leapWhite ? 'light' : 'dark'; hasBg = false; }
+    else {
+      const gr = $('#games').getBoundingClientRect();
+      headerTheme = (gr.top <= probe && gr.bottom > probe) ? 'light' : (gr.top > probe && !leapTL ? 'dark' : pageTheme);
+      hasBg = y > 10;
+    }
+    if (header.dataset.theme !== headerTheme) header.dataset.theme = headerTheme;
+    header.classList.toggle('has-bg', hasBg);
+
+    /* Кнопка «Наверх»: после 350px прокрутки */
+    const show = y > 350;
+    if (show !== topVisible) {
+      topVisible = show;
+      if (hasGSAP) gsap.to(toTop, { autoAlpha: show ? 1 : 0, duration: .35, ease: 'power2.out', overwrite: true });
+      else { toTop.style.opacity = show ? 1 : 0; toTop.style.visibility = show ? 'visible' : 'hidden'; }
+    }
+    const max = document.documentElement.scrollHeight - vh;
+    ring.style.strokeDashoffset = String(RING * (1 - clamp(max > 0 ? y / max : 0)));
+  }
+  function scheduleUI() { if (!uiQueued) { uiQueued = true; requestAnimationFrame(updateUI); } }
+  window.addEventListener('scroll', scheduleUI, { passive: true });
+  window.addEventListener('resize', scheduleUI);
+  if (hasST) ScrollTrigger.addEventListener('refresh', scheduleUI);
+  updateUI();
+
+  toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+  /* Якорная навигация с учётом высоты шапки */
+  $$('a[data-scroll]').forEach(a => a.addEventListener('click', (e) => {
+    const el = $(a.getAttribute('href')); if (!el) return;
+    e.preventDefault();
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 64, behavior: 'smooth' });
+  }));
+})();
+</script>
+</body>
+</html>

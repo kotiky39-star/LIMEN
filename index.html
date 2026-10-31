@@ -2868,16 +2868,16 @@ function openMyAchievementsModal() {
     const got = g.ach.map((a, i) => ({ a, i })).filter(({ i }) => isUnlocked(g, i));
     const pct = Math.round(got.length / g.ach.length * 100);
     return `
-      <button type="button" data-game="${g.id}" class="m-anim w-full text-left flex items-center gap-4 rounded-2xl border border-white/10 p-3 md:p-4 transition duration-300 hover:border-white/30 hover:bg-white/5">
-        <span class="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-cover bg-center shrink-0" style="background-image:${bgLayers(g)}"></span>
+      <button type="button" data-game="${g.id}" class="m-anim w-full text-left flex items-center gap-4 rounded-2xl border border-white/15 bg-[#1e222c] p-3 md:p-4 shadow-[0_8px_24px_-12px_rgba(0,0,0,.8)] transition-colors duration-300 hover:border-white/40 hover:bg-[#272c38] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/70">
+        <span class="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-cover bg-center shrink-0 ring-1 ring-white/15" style="background-image:${bgLayers(g)}"></span>
         <span class="flex-1 min-w-0">
           <span class="flex items-baseline justify-between gap-3">
-            <span class="font-semibold truncate">${g.title}</span>
-            <span class="text-sm tabular-nums text-white/60 shrink-0">${got.length} / ${g.ach.length}</span>
+            <span class="font-semibold text-white truncate min-w-0">${g.title}</span>
+            <span class="text-sm tabular-nums text-white/80 shrink-0">${got.length} / ${g.ach.length}</span>
           </span>
-          <span class="mt-2 block h-1.5 rounded-full bg-white/10 overflow-hidden"><span class="rarity-bar block h-full rounded-full" style="width:${pct}%;background:${g.accent}"></span></span>
+          <span class="mt-2 block h-1.5 rounded-full bg-white/15 overflow-hidden"><span class="rarity-bar block h-full rounded-full" style="width:${pct}%;background:${g.accent}"></span></span>
           <span class="mt-2 flex flex-wrap gap-1.5 min-h-[24px]">
-            ${got.length ? got.map(({ a, i }) => `<span class="is-unlocked" title="${esc(a.t)}"><img class="ach-icon w-6 h-6 rounded object-cover" src="${a.icon}" data-roman="${ROMAN[i]}" data-color="${g.accent}" onerror="iconFallback(this)" alt=""></span>`).join('') : '<span class="text-[11px] text-white/30">Пока ничего не получено</span>'}
+            ${got.length ? got.map(({ a, i }) => `<span class="is-unlocked" title="${esc(a.t)}"><img class="ach-icon w-6 h-6 rounded object-cover" src="${a.icon}" data-roman="${ROMAN[i]}" data-color="${g.accent}" onerror="iconFallback(this)" alt=""></span>`).join('') : '<span class="text-[11px] text-white/55">Пока ничего не получено</span>'}
           </span>
         </span>
       </button>`;
@@ -2887,18 +2887,18 @@ function openMyAchievementsModal() {
     <div class="p-6 pt-8 md:p-10">
       <div class="m-anim flex flex-wrap items-end justify-between gap-4 mb-6 pr-12">
         <div>
-          <p class="text-[10px] uppercase tracking-[0.4em] text-white/40 mb-2">Профиль · ${esc(session.user.email)}</p>
+          <p class="text-[10px] uppercase tracking-[0.4em] text-white/60 mb-2 truncate">Профиль · ${esc(session.user.email)}</p>
           <h3 class="text-2xl md:text-3xl font-bold">Мои достижения</h3>
         </div>
         <div class="text-right">
-          <div class="text-3xl font-black tabular-nums">${t.got}<span class="text-white/30"> / ${t.total}</span></div>
-          <div class="text-[10px] uppercase tracking-[0.3em] text-white/40">${steam ? `Steam: ${esc(steam)}` : 'Steam не привязан'}</div>
+          <div class="text-3xl font-black tabular-nums">${t.got}<span class="text-white/50"> / ${t.total}</span></div>
+          <div class="text-[10px] uppercase tracking-[0.3em] text-white/60">${steam ? `Steam: ${esc(steam)}` : 'Steam не привязан'}</div>
         </div>
       </div>
       ${steam ? '' : `
         <div class="m-anim mb-6 rounded-2xl border p-5 flex flex-col sm:flex-row sm:items-center gap-4" style="border-color:rgba(102,192,244,.25);background:rgba(102,192,244,.05)">
           <span class="text-[#66c0f4]">${STEAM_ICON(28)}</span>
-          <p class="flex-1 text-sm text-white/70">Привяжите Steam, чтобы полученные достижения отметились зелёной галочкой.</p>
+          <p class="flex-1 text-sm text-white/80">Привяжите Steam, чтобы полученные достижения отметились зелёной галочкой.</p>
           <button type="button" data-steam-link class="btn btn-steam justify-center"><span class="spin"></span>${STEAM_ICON(16)} Привязать аккаунт Steam</button>
         </div>`}
       <div class="space-y-3">${rows}</div>
