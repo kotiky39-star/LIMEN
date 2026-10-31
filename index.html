@@ -663,6 +663,7 @@ const GAMES = [
       { src: 'GameSpot', score: '9.0', text: 'Разнообразие миссий, свободный паркур и великолепная Италия Ренессанса делают игру одной из лучших в жанре.' },
       { src: 'Eurogamer', score: '9/10', text: 'Ubisoft исправила почти всё, за что критиковали оригинал, и подарила серии её самого любимого героя.' }
     ]
+    url: 'ac_franchise.html',
   },
   {
     id: 'witcher3', title: 'The Witcher 3: Wild Hunt', display: 'THE WITCHER 3|WILD HUNT',
@@ -2003,6 +2004,10 @@ function go(to, opts = {}) {
 function openGame(id) {
   const g = GAMES.find(x => x.id === id);
   if (!g) return;
+  if (g.url) {
+      window.location.href = g.url;
+      return;
+  }
   go('detail', { before: () => renderDetail(g) });
 }
 
