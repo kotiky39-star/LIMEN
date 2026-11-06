@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OBSIDIAN ARCHIVE // TERMINAL</title>
+<meta name="description" content="Standalone terminal console for the Obsidian Archive.">
+<meta name="theme-color" content="#050505">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+:root{
+  --ground:#0a0a0c;
+  --bone:#e5dfd1;
+  --brass:#b9975b;
+  --accent:#b9975b;
+  --glow:color-mix(in srgb,var(--accent) 32%,transparent);
+  --dim:rgba(229,223,209,.62);
+  --faint:rgba(229,223,209,.34);
+  --line:rgba(185,151,91,.30);
+  --line-soft:rgba(185,151,91,.14);
+  --mono:'JetBrains Mono','Courier New',monospace;
+  --title:'Cinzel',Georgia,'Times New Roman',serif;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{background:var(--ground);scrollbar-color:var(--brass) #050506}
+body{min-height:100vh;background:var(--ground);color:var(--bone);font-family:var(--mono);
+  font-size:14px;line-height:1.75;overflow-x:hidden;-webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column}
+::selection{background:var(--accent);color:#0a0a0c}
+
+body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0px,rgba(0,0,0,.14) 1px,transparent 1px,transparent 3px)}
+#vignette{position:fixed;inset:0;z-index:9997;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 45%,transparent 52%,rgba(0,0,0,.62) 100%)}
+#flicker{position:fixed;inset:0;z-index:9996;pointer-events:none;background:var(--accent);opacity:0;mix-blend-mode:overlay}
+#wipe{position:fixed;inset:0;z-index:9999;background:var(--ground);opacity:0;pointer-events:none}
+
+.corner{position:fixed;font-size:18px;color:rgba(185,151,91,.4);z-index:100;pointer-events:none;line-height:1}
+.corner.tl{top:12px;left:16px}.corner.tr{top:12px;right:16px}
+.corner.bl{bottom:12px;left:16px}.corner.br{bottom:12px;right:16px}
+
+#topbar{position:sticky;top:0;z-index:300;background:rgba(10,10,12,.94);border-bottom:1px solid var(--line);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.bar{max-width:1120px;margin:0 auto;padding:13px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{font-family:var(--title);font-size:13px;letter-spacing:.34em;color:var(--brass);text-decoration:none;
+  text-transform:uppercase;white-space:nowrap}
+.brand:hover{color:var(--bone)}
+.tnav{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto}
+.tnav a{color:var(--dim);text-decoration:none;font-size:11px;letter-spacing:.18em;padding:5px 10px;
+  border:1px solid transparent;text-transform:uppercase;
+  transition:color .2s,border-color .2s,background .2s,box-shadow .2s}
+.tnav a:hover{color:var(--bone);border-color:var(--line);background:rgba(185,151,91,.08)}
+.tnav a.on{color:var(--accent);border-color:var(--accent);box-shadow:0 0 14px var(--glow)}
+
+.wrap{flex:1;width:100%;max-width:1120px;margin:0 auto;padding:26px 20px 96px;display:flex;flex-direction:column}
+.pagehead{margin-bottom:18px}
+.pagehead h1{font-family:var(--title);font-weight:700;text-transform:uppercase;letter-spacing:.16em;
+  font-size:clamp(22px,4.4vw,38px);color:var(--accent);text-shadow:0 0 26px var(--glow);line-height:1.1}
+.pagehead p{margin-top:8px;color:var(--dim);font-size:12px;letter-spacing:.16em}
+
+.term-host{flex:1;min-height:min(64vh,620px);display:flex}
+.term-host>div{flex:1;display:flex;min-height:0}
+.term-host .oa-term{flex:1}
+
+.cheats{margin-top:18px;border:1px solid var(--line);padding:16px 18px;
+  background:linear-gradient(180deg,rgba(185,151,91,.045),rgba(0,0,0,.28));
+  box-shadow:inset 0 0 60px rgba(0,0,0,.55)}
+.cheats .sep{color:var(--brass);font-size:11px;letter-spacing:.18em;text-transform:uppercase;margin-bottom:12px}
+.cheats .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 18px}
+.cheats .c{font-size:11px;letter-spacing:.06em;color:var(--dim)}
+.cheats .c b{color:var(--accent);font-weight:500}
+
+#footer{position:fixed;bottom:0;left:0;right:0;height:34px;z-index:200;display:flex;align-items:center;
+  justify-content:center;background:linear-gradient(to top,rgba(10,10,12,.96),transparent);pointer-events:none}
+#footer span{font-size:9px;letter-spacing:.34em;color:rgba(185,151,91,.45);text-transform:uppercase}
+
+#toast{position:fixed;left:50%;bottom:52px;transform:translateX(-50%);z-index:400;border:1px solid var(--accent);
+  background:rgba(10,10,12,.96);color:var(--bone);padding:10px 18px;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;box-shadow:0 0 24px var(--glow);opacity:0;pointer-events:none;max-width:90vw;text-align:center}
+
+@media(max-width:768px){
+  body{font-size:13px}
+  .wrap{padding:18px 12px 84px}
+  .bar{padding:11px 14px;gap:10px}
+  .tnav{margin-left:0;width:100%;justify-content:space-between;gap:6px}
+  .tnav a{flex:1;text-align:center;padding:6px 4px;font-size:10px;letter-spacing:.1em}
+  .brand{width:100%;text-align:center;font-size:11px;letter-spacing:.24em}
+  .term-host{min-height:56vh}
+  .cheats .grid{grid-template-columns:minmax(0,1fr)}
+  .corner{font-size:14px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
+}
+</style>
+</head>
+<body>
+
+<div id="wipe"></div>
+<div id="flicker"></div>
+<div id="vignette"></div>
+
+<div class="corner tl">+</div>
+<div class="corner tr">+</div>
+<div class="corner bl">+</div>
+<div class="corner br">+</div>
+
+<header id="topbar">
+  <div class="bar">
+    <a class="brand" href="index.html">[ OBSIDIAN ARCHIVE ]</a>
+    <nav class="tnav">
+      <a href="index.html">&gt; HOME</a>
+      <a href="universe.html">&gt; UNIVERSE</a>
+      <a href="lore.html">&gt; LORE</a>
+      <a href="profile.html">&gt; PROFILE</a>
+      <a href="terminal.html" class="on">&gt;_ TERMINAL</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="pagehead">
+    <h1>TERMINAL CONSOLE</h1>
+    <p id="head-sub">&gt; DIRECT SHELL ACCESS // SESSION: GUEST</p>
+  </div>
+
+  <div class="term-host"><div id="term-host"></div></div>
+
+  <section class="cheats">
+    <div class="sep">+---[ QUICK REFERENCE ]---+</div>
+    <div class="grid">
+      <div class="c"><b>help</b> — command registry</div>
+      <div class="c"><b>man &lt;cmd&gt;</b> — manual page</div>
+      <div class="c"><b>ls</b> — archive index</div>
+      <div class="c"><b>open &lt;id&gt;</b> — open dossier</div>
+      <div class="c"><b>goto &lt;page&gt;</b> — navigate</div>
+      <div class="c"><b>search &lt;q&gt;</b> — find record</div>
+      <div class="c"><b>theme &lt;c&gt;</b> — accent color</div>
+      <div class="c"><b>random</b> — random universe</div>
+      <div class="c"><b>logs / stats / access</b></div>
+      <div class="c"><b>Tab</b> — autocomplete</div>
+      <div class="c"><b>↑ ↓</b> — history</div>
+      <div class="c"><b>Ctrl+L</b> — clear</div>
+    </div>
+  </section>
+</main>
+
+<footer id="footer"><span>[ OBSIDIAN ARCHIVE // SHELL NODE 05 ]</span></footer>
+
+<div id="toast"></div>
+
+<script src="data.js"></script>
+<script src="terminal.js"></script>
+<script>
+(function(){
+'use strict';
+
+var REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var PHOSPHOR = { amber:'#b9975b', green:'#2e8b57', ice:'#7fb6d9' };
+var wipe = document.getElementById('wipe');
+var flicker = document.getElementById('flicker');
+var toastEl = document.getElementById('toast');
+
+function lsGet(k, fb){ try{ var v = localStorage.getItem(k); return v == null ? fb : JSON.parse(v); }catch(e){ return fb; } }
+
+function toast(msg){
+  toastEl.textContent = msg;
+  if(typeof gsap === 'undefined'){ toastEl.style.opacity = 1; setTimeout(function(){ toastEl.style.opacity = 0; }, 2200); return; }
+  gsap.killTweensOf(toastEl);
+  gsap.fromTo(toastEl, {opacity:0, y:14}, {opacity:1, y:0, duration:.28, ease:'power2.out'});
+  gsap.to(toastEl, {opacity:0, y:10, duration:.35, delay:2.4});
+}
+
+/* expose shelf-less bridge: on this page search/sort/next/prev report offline */
+window.OA_SHELF = null;
+
+function init(){
+  var p = lsGet('oa_profile', {});
+  if(PHOSPHOR[p.phosphor]) document.documentElement.style.setProperty('--accent', PHOSPHOR[p.phosphor]);
+
+  if(window.OA_TERMINAL){
+    window.OA_TERMINAL.init('term-host', false);
+  } else {
+    document.getElementById('term-host').textContent = '> TERMINAL MODULE FAILED TO LOAD';
+  }
+
+  var sub = document.getElementById('head-sub');
+  var target = '> DIRECT SHELL ACCESS // OPERATOR: ' + String(p.callsign || 'GUEST').toUpperCase();
+  sub.textContent = '';
+  if(REDUCE || typeof gsap === 'undefined'){ sub.textContent = target; }
+  else {
+    var proxy = {n:0};
+    gsap.to(proxy, {
+      n:target.length, duration:Math.max(.4, target.length * 0.02), ease:'none',
+      onUpdate:function(){ sub.textContent = target.slice(0, Math.round(proxy.n)); },
+      onComplete:function(){ sub.textContent = target; }
+    });
+  }
+
+  if(!REDUCE && typeof gsap !== 'undefined'){
+    gsap.from('#topbar', {y:-40, opacity:0, duration:.5, ease:'power2.out', delay:.05});
+    gsap.from('.pagehead', {y:18, opacity:0, duration:.5, ease:'power2.out', delay:.1});
+    gsap.from('.term-host', {opacity:0, y:22, duration:.6, ease:'power2.out', delay:.16});
+    gsap.from('.cheats', {opacity:0, y:22, duration:.6, ease:'power2.out', delay:.26});
+    gsap.to(flicker, {opacity:.05, duration:2.6, repeat:-1, yoyo:true, ease:'sine.inOut'});
+    gsap.fromTo(wipe, {opacity:1}, {opacity:0, duration:.4, ease:'power2.out'});
+  }
+
+  var eggs = lsGet('oa_achievements', {});
+  var n = Object.keys(eggs).length;
+  if(n) setTimeout(function(){ toast('> ' + n + ' EASTER EGG(S) DISCOVERED'); }, 1400);
+}
+
+document.addEventListener('click', function(e){
+  var a = e.target.closest('a[href$=".html"]');
+  if(!a) return;
+  e.preventDefault();
+  var url = a.getAttribute('href');
+  if(REDUCE || typeof gsap === 'undefined'){ location.href = url; return; }
+  gsap.to(flicker, {opacity:.16, duration:.08, yoyo:true, repeat:1});
+  gsap.to(wipe, {opacity:1, duration:.26, ease:'power2.in', onComplete:function(){ location.href = url; }});
+});
+
+init();
+
+})();
+</script>
+</body>
+</html>

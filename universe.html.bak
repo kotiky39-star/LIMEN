@@ -1,0 +1,381 @@
+cd ~/game_site/backend/backend
+source ~/venv/bin/activate
+uvicorn main:app --reload --port 8000<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS — Red Dead Universe</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    fontFamily: { sans:['Inter','system-ui','sans-serif'], cinzel:['Cinzel','Cormorant Garamond','Georgia','serif'] },
+    colors: { nexus:'#38bdf8' }
+  } } }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
+<style>
+  :root { --noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.5'/></svg>"); }
+  html,body { background:#030712; }
+  body { font-family:'Inter',system-ui,sans-serif; color:#e2e8f0; overflow-x:hidden; }
+  .grain { position:fixed; inset:-50%; z-index:60; pointer-events:none; opacity:.05; background-image:var(--noise); animation:grain 1.2s steps(6) infinite; }
+  @keyframes grain { 0%,100%{transform:translate(0,0)} 20%{transform:translate(-3%,2%)} 40%{transform:translate(2%,-3%)} 60%{transform:translate(-2%,-1%)} 80%{transform:translate(3%,3%)} }
+  .glass { background:rgba(255,255,255,.06); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border:1px solid rgba(255,255,255,.12); }
+  .nav-link { position:relative; opacity:.65; transition:opacity .3s; }
+  .nav-link:hover,.nav-link.is-active { opacity:1; }
+  .nav-link::after { content:''; position:absolute; left:0; bottom:-4px; height:1px; width:100%; background:#38bdf8; transform:scaleX(0); transform-origin:right; transition:transform .5s cubic-bezier(.2,.8,.2,1); }
+  .nav-link:hover::after,.nav-link.is-active::after { transform:scaleX(1); transform-origin:left; }
+  .hero { min-height:100vh; display:flex; align-items:center; justify-content:center; text-align:center; position:relative; overflow:hidden; }
+  .codex-card { transition:transform .3s, box-shadow .3s; }
+  .codex-card:hover { transform:translateY(-6px); box-shadow:0 0 30px rgba(56,189,248,.25); }
+@media (max-width:768px) {
+  header .glass { flex-direction:column; align-items:stretch; gap:.75rem; }
+  nav { justify-content:center; flex-wrap:wrap; }
+  .search-wrap { max-width:100%; }
+}
+
+.modal { position:fixed; inset:0; z-index:80; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.7); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
+.modal-card { max-width:700px; width:90%; max-height:90vh; overflow:auto; position:relative; font-size:1.1rem; line-height:1.8; }
+
+.tab-btn { opacity:.6; border-bottom:2px solid transparent; padding:.5rem 0; transition:opacity .3s,border-color .3s; }
+.tab-btn.is-active { opacity:1; border-color:#38bdf8; color:#38bdf8; }
+
+:root { --accent:#38bdf8; --bg:#030712; }
+body { background:var(--bg); }
+.theme-rdr2 { --accent:#8b0000; --bg:#1a1512; }
+.theme-cyberpunk { --accent:#fcee0a; --bg:#050505; }
+.theme-witcher { --accent:#c0c0c0; --bg:#0a0a0c; }
+.accent-text { color:var(--accent); }
+.accent-border { border-color:var(--accent); }
+.lore-link { color:var(--accent); text-decoration:underline; text-decoration-color:var(--accent); cursor:pointer; text-shadow:0 0 8px var(--accent); }
+.lore-link:hover { color:#fcee0a; text-shadow:0 0 12px #fcee0a; }
+.modal-nested { z-index:90; background:rgba(0,0,0,.85); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
+.dossier-modal .modal-card { max-width:640px; width:92%; }
+.dossier-tabs { display:flex; gap:8px; border-bottom:1px solid rgba(255,255,255,.12); margin-bottom:1rem; }
+.dossier-tab { opacity:.6; padding:.5rem 1rem; cursor:pointer; border:none; background:transparent; color:#e2e8f0; font-family:'Inter',sans-serif; font-size:0.9rem; }
+.dossier-tab.is-active { opacity:1; border-bottom:2px solid #38bdf8; color:#38bdf8; }
+.dossier-tab-panel { display:none; }
+.dossier-tab-panel.is-active { display:block; }
+.dossier-equipment { display:flex; flex-wrap:wrap; gap:8px; margin-top:1rem; }
+.dossier-item { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.12); border-radius:6px; padding:6px 12px; font-size:0.85rem; }
+.sign-flash { position:fixed; inset:0; background:rgba(255,0,0,.25); pointer-events:none; z-index:99; animation:signFlash .15s ease-in-out; }
+@keyframes signFlash { 0%{opacity:0} 50%{opacity:1} 100%{opacity:0} }
+.screen-shake { animation:screenShake .4s ease-in-out; }
+@keyframes screenShake { 0%,100%{transform:translate(0,0)} 25%{transform:translate(-4px,4px)} 50%{transform:translate(4px,-4px)} 75%{transform:translate(-2px,2px)} }
+.timeline-node { min-width:150px; }
+.timeline-node.active { border-color:var(--accent); box-shadow:0 0 16px var(--accent); color:var(--accent); }
+
+/* Cinematic Nexus visual system */
+:root{--accent:#38bdf8}
+body{background:radial-gradient(circle at 50% 0%,#151525 0%,#050505 100%);color:#e0e0e0;font-family:Inter,system-ui,sans-serif;isolation:isolate}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.35;background-image:radial-gradient(1px 1px at 20px 30px,#fff 98%,transparent),radial-gradient(1px 1px at 95px 115px,#8ccfff 98%,transparent);background-size:173px 191px,277px 263px}
+h1,h2,h3,.font-cinzel{font-family:Cinzel,Georgia,serif;text-shadow:0 0 10px #ffffff33}
+.glass,.modal-card,.collection-cover{background:rgba(15,15,20,.7);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid #ffffff1a;border-radius:12px}
+.modal{background:#000b;backdrop-filter:blur(16px);padding:16px}.modal-nested{background:#000d}
+.modal-card{box-shadow:0 24px 100px #0009}
+.card{transition:border-color .3s,box-shadow .3s,scale .3s}.card:hover{scale:1.02;border-color:var(--accent);box-shadow:0 0 28px #38bdf826}
+header>.glass{box-shadow:0 12px 40px #0006}
+input,textarea,select{color:#e0e0e0;background:#090c14!important;transition:border-color .25s,box-shadow .25s}input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 14px #38bdf82b}option{background:#090c14}
+img{background:#10131b}button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+@media(max-width:768px){header>.glass{gap:10px;padding:12px 16px}header nav{display:flex;font-size:10px;gap:16px}.search-wrap{width:100%}main{padding-top:240px!important;padding-bottom:100px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+.hero{padding:120px 24px 64px;min-height:100svh}.hero h1{font-size:clamp(2.2rem,7vw,6rem);overflow-wrap:anywhere}
+.theme-eldenring{--accent:#c9a227}.theme-ac{--accent:#c8102e}
+.codex-card p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;overflow:hidden;line-height:1.8}
+#codex-modal .modal-card{max-width:700px}
+#codex-text{font-size:1.1rem;line-height:1.8;max-height:50vh;overflow-y:auto;padding:8px 8px 16px 0;scrollbar-color:var(--accent) #101018}
+#codex-text p{margin:0 0 1.4em}#codex-text>p:first-of-type::first-letter{float:left;font-family:Cinzel,serif;font-size:4.4rem;line-height:.85;padding:10px 12px 0 0;color:#d4af6a;text-shadow:0 0 20px #c8102e55}
+#codex-text blockquote{border-left:2px solid #d4af6a;padding:8px 18px;color:#c5c2b8;font-style:italic}
+.reading-progress-bar{height:4px;background:#ffffff15;margin:24px 0 20px;overflow:hidden;border-radius:20px}.reading-progress-bar>div{height:100%;background:linear-gradient(90deg,#c8102e,#d4af6a);box-shadow:0 0 12px #d4af6a}
+.lore-link{text-decoration:underline dashed;text-underline-offset:5px}.dossier-tabs{padding-right:24px}.dossier-tab{border-radius:6px 6px 0 0}.dossier-tab.is-active{color:var(--accent);border-bottom:2px solid var(--accent);background:#ffffff07;box-shadow:0 8px 12px -12px var(--accent)}.character-card{cursor:pointer}.character-card img{filter:saturate(.6) contrast(1.1)}
+@media(max-width:768px){.hero{padding-top:240px}}
+
+.modal-card{font-size:1rem;line-height:1.6}
+.card:hover{box-shadow:0 0 28px color-mix(in srgb,var(--accent) 20%,transparent)}
+</style>
+<script src="data.js"></script>
+</head>
+<body class="min-h-screen">
+<div class="grain"></div>
+<div id="page-transition" class="fixed inset-0 bg-black z-[100] opacity-0 pointer-events-none"></div>
+<header class="fixed top-0 left-0 right-0 z-50">
+  <div class="glass mx-4 mt-4 rounded-2xl px-5 py-3 flex items-center gap-4">
+    <a href="index.html" class="font-cinzel tracking-[.35em] text-lg text-white">NEXUS</a>
+    <nav class="hidden md:flex gap-6 text-xs uppercase tracking-[.25em]">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="lore.html" class="nav-link">Lore</a>
+      <a href="profile.html" class="nav-link">Profile</a>
+    </nav>
+    <div class="search-wrap relative flex-1 max-w-md mx-auto">
+      <input id="nexus-search" type="text" placeholder="Search the nexus..." class="w-full bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm outline-none focus:border-nexus/60">
+      <div id="search-results" class="absolute top-full mt-2 w-full glass rounded-xl overflow-hidden hidden z-50"></div>
+    </div>
+    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-nexus to-indigo-600 grid place-items-center text-sm font-semibold">A</div>
+  </div>
+</header>
+
+<section class="hero" id="hero">
+  <div class="absolute inset-0" style="background:radial-gradient(ellipse at 50% 60%,rgba(200,16,46,.18),transparent 60%),linear-gradient(180deg,#0a0505,#030712);"></div>
+  <div class="relative z-10 px-6 max-w-4xl">
+    <p class="text-nexus text-[10px] uppercase tracking-[.5em] mb-6">Universe</p>
+    <h1 id="hero-title" class="font-cinzel text-5xl md:text-8xl glow accent-text" style="text-shadow:0 0 24px rgba(56,189,248,.35)">RED DEAD REDEMPTION II</h1>
+    <p id="hero-subtitle" class="mt-6 text-white/60 max-w-2xl mx-auto text-base md:text-lg font-light">A cinematic frontier of outlaws.</p>
+    <p id="hero-desc" class="mt-3 text-white/40 max-w-2xl mx-auto text-sm">Outlaws, loyalty, and the slow death of the West.</p>
+    <div class="mt-10 flex justify-center">
+      <a id="enter-story" href="rdr2_story.html" class="glass rounded-full accent-border accent-text px-8 py-3 text-sm uppercase tracking-[.25em] hover:bg-white/10 transition">Enter Story</a>
+    </div>
+  </div>
+</section>
+
+<section class="max-w-6xl mx-auto px-6 py-20">
+  <h2 class="font-cinzel text-3xl mb-8">Codex</h2>
+  <div id="codex-container" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+</section>
+
+
+<section class="max-w-6xl mx-auto px-6 py-20">
+  <h2 class="font-cinzel text-3xl mb-8">Key Characters</h2>
+  <div id="characters-container" class="grid md:grid-cols-3 gap-6"></div>
+</section>
+
+<div id="codex-modal" class="modal">
+  <div class="modal-card glass rounded-2xl p-6">
+    <button id="codex-close" class="absolute top-4 right-4 text-white/60 hover:text-white">✕</button>
+    <div class="reading-progress-bar" id="reading-progress"><div style="width:0%"></div></div>
+    <img id="codex-img" class="w-full h-48 object-cover rounded-xl mb-4" alt="" src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=400&auto=format&fit=crop">
+    <h2 id="codex-title" class="font-cinzel text-2xl mb-3"></h2>
+    <div id="codex-text" class="text-white/70 text-sm leading-relaxed max-h-[45vh] overflow-y-auto"></div>
+    <button id="codex-sign-btn" class="mt-4 glass rounded-full px-6 py-2 text-sm uppercase tracking-[.1em]">Trigger Sign</button>
+  </div>
+</div>
+
+
+<div id="lore-modal" class="modal modal-nested">
+  <div class="modal-card glass rounded-2xl p-6">
+    <button id="lore-close" class="absolute top-4 right-4 text-white/60 hover:text-white">✕</button>
+    <h2 id="lore-modal-title" class="font-cinzel text-2xl mb-3"></h2>
+    <p id="lore-modal-text" class="text-white/70 text-sm leading-relaxed"></p>
+  </div>
+</div>
+
+<div id="dossier-modal" class="modal dossier-modal">
+  <div class="modal-card glass rounded-2xl p-6">
+    <button id="dossier-close" class="absolute top-4 right-4 text-white/60 hover:text-white">✕</button>
+    <div class="dossier-tabs">
+      <button class="dossier-tab is-active" data-tab="bio">Bio</button>
+      <button class="dossier-tab" data-tab="thoughts">Thoughts</button>
+      <button class="dossier-tab" data-tab="equipment">Equipment</button>
+    </div>
+    <div class="dossier-tab-panel is-active" id="dossier-bio">
+      <img id="dossier-img" class="w-full h-64 object-cover rounded-xl mb-4" alt="">
+      <h2 id="dossier-name" class="font-cinzel text-2xl mb-2"></h2>
+      <p id="dossier-bio-text" class="text-white/70 text-sm leading-relaxed"></p>
+    </div>
+    <div class="dossier-tab-panel" id="dossier-thoughts">
+      <h3 class="font-cinzel text-xl mb-3">Thoughts</h3>
+      <div id="dossier-thoughts-list" class="text-white/70 text-sm leading-relaxed"></div>
+    </div>
+    <div class="dossier-tab-panel" id="dossier-equipment">
+      <h3 class="font-cinzel text-xl mb-3">Equipment</h3>
+      <div id="dossier-equipment-list" class="dossier-equipment"></div>
+    </div>
+  </div>
+</div>
+
+<section class="max-w-6xl mx-auto px-6 py-20">
+  <h2 class="font-cinzel text-3xl mb-8">Chronology</h2>
+  <div id="timeline-container" class="flex gap-4 overflow-x-auto pb-4"></div>
+  <div id="timeline-desc" class="glass rounded-2xl p-4 mt-4 text-white/70 text-sm">Select a node.</div>
+</section>
+
+<script>
+  const lenis = new Lenis({duration:1.1});
+  function raf(t){ lenis.raf(t); requestAnimationFrame(raf); }
+  requestAnimationFrame(raf);
+  gsap.registerPlugin(ScrollTrigger);
+</script>
+<script>
+function renderGameData(gameId) {
+  const game = (typeof GAMES !== 'undefined' && GAMES[gameId]) ? GAMES[gameId] : (typeof GAMES !== 'undefined' ? GAMES.rdr2 : null);
+  if (!game) {
+    console.error('Missing game data for:', gameId);
+    return;
+  }
+
+  const codexContainer = document.getElementById('codex-container');
+  const charactersContainer = document.getElementById('characters-container');
+  const timelineContainer = document.getElementById('timeline-container');
+
+  if (!codexContainer || !charactersContainer || !timelineContainer) {
+    console.error('Missing render containers');
+    return;
+  }
+
+  codexContainer.innerHTML = '';
+  (game.codex || []).forEach((entry, i) => {
+    const card = document.createElement('div');
+    card.className = 'glass rounded-2xl p-6 codex-card card';
+    card.dataset.index = i;
+    card.innerHTML = `
+      <h3 class="font-cinzel text-xl mb-2">${entry.title}</h3>
+      <p class="text-white/60 text-sm">${nexusPlainText(entry.desc).slice(0,360)}</p>
+    `;
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => {
+      const d = (game.codex || [])[i];
+      document.getElementById('codex-title').textContent = d.title;
+      const read = JSON.parse(localStorage.getItem('readArticles') || '[]');
+      read.push(gameId);
+      localStorage.setItem('readArticles', JSON.stringify(read));
+      const article=document.getElementById('codex-text');
+      article.innerHTML=nexusParagraphs(d.desc);
+      article.scrollTop=0;
+      requestAnimationFrame(updateReadingProgress);
+      document.getElementById('codex-img').src = nexusImage(d.img);
+      openModal(document.getElementById('codex-modal'));
+    });
+    codexContainer.appendChild(card);
+  });
+
+  charactersContainer.innerHTML = (game.characters || []).map(c => `
+    <div class="glass rounded-2xl overflow-hidden relative group character-card card" data-character="${c.name}">
+      <img src="${nexusImage(c.img)}" class="w-full h-72 object-cover" alt="${c.name}">
+      <div class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <button class="glass rounded-full px-6 py-2 text-sm uppercase tracking-[.1em]">View Dossier</button>
+      </div>
+    </div>
+  `).join('');
+
+  charactersContainer.querySelectorAll('.character-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const name = card.dataset.character;
+      const char = (game.characters || []).find(c => c.name === name);
+      if (!char) return;
+      document.getElementById('dossier-img').src = nexusImage(char.img);
+      document.getElementById('dossier-name').textContent = char.name;
+      document.getElementById('dossier-bio-text').innerHTML = nexusParagraphs(char.bio);
+      document.getElementById('dossier-thoughts-list').innerHTML = (char.thoughts || []).map(t => `<p class="mb-2">“${t}”</p>`).join('');
+      document.getElementById('dossier-equipment-list').innerHTML = (char.equipment || []).map(e => `<span class="dossier-item">${e}</span>`).join('');
+      document.querySelectorAll('.dossier-tab').forEach(t => t.classList.remove('is-active'));
+      document.querySelectorAll('.dossier-tab-panel').forEach(p => p.classList.remove('is-active'));
+      document.querySelector('.dossier-tab[data-tab="bio"]').classList.add('is-active');
+      document.getElementById('dossier-bio').classList.add('is-active');
+      openModal(document.getElementById('dossier-modal'));
+    });
+  });
+
+  document.querySelectorAll('.dossier-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.dossier-tab').forEach(t => t.classList.remove('is-active'));
+      document.querySelectorAll('.dossier-tab-panel').forEach(p => p.classList.remove('is-active'));
+      tab.classList.add('is-active');
+      document.getElementById('dossier-' + tab.dataset.tab).classList.add('is-active');
+    });
+  });
+
+  document.getElementById('dossier-close').addEventListener('click', () => closeModal(document.getElementById('dossier-modal')));
+
+  timelineContainer.innerHTML = (game.timeline || []).map(t => `
+    <button class="timeline-node glass rounded-xl px-4 py-3 text-sm" data-desc="${t.desc}">
+      ${t.year}<br>${t.event}
+    </button>
+  `).join('');
+
+  timelineContainer.querySelectorAll('.timeline-node').forEach(node => {
+    node.addEventListener('click', () => {
+      timelineContainer.querySelectorAll('.timeline-node').forEach(n => n.classList.remove('active'));
+      node.classList.add('active');
+      document.getElementById('timeline-desc').textContent = node.dataset.desc;
+    });
+  });
+
+
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(location.search);
+  const requested=params.get('game');
+  const gameId=Object.hasOwn(GAMES,requested) ? requested : 'rdr2';
+
+  const themeMap = { rdr2:'theme-rdr2', cyberpunk:'theme-cyberpunk', witcher3:'theme-witcher', eldenring:'theme-eldenring', ac:'theme-ac' };
+  if (themeMap[gameId]) document.body.classList.add(themeMap[gameId]);
+
+  const game = GAMES[gameId] || GAMES.rdr2;
+  const hero = document.getElementById('hero');
+  document.getElementById('hero-title').textContent = game.title;
+  document.getElementById('hero-subtitle').textContent = game.subtitle;
+  document.getElementById('hero-desc').textContent = game.desc;
+  hero.querySelector('.absolute.inset-0').style.background = `radial-gradient(ellipse at 50% 60%, ${game.heroColor}40, transparent 60%), linear-gradient(180deg,#0a0505,#030712)`;
+
+  const btn = document.getElementById('enter-story');
+  const stories = { rdr2: 'rdr2_story.html' };
+  if (stories[gameId]) btn.href = stories[gameId];
+  else {
+    btn.href = '#';
+    btn.addEventListener('click', e => { e.preventDefault(); alert('Story coming soon'); });
+  }
+
+  renderGameData(gameId);
+});
+</script>
+
+<script>
+const NESTED = {
+  pinkertons: { title:'Pinkertons', text:'A ruthless detective agency hired to hunt the gang across states.' },
+  vanderlinde: { title:'Van der Linde Gang', text:'A found family that slowly became a cult of personality.' }
+};
+document.getElementById('codex-text').addEventListener('click', e => {
+  const link = e.target.closest('.lore-link');
+  if (link) {
+    const d = NESTED[link.dataset.target];
+    if (!d) return;
+    document.getElementById('lore-modal-title').textContent = d.title;
+    document.getElementById('lore-modal-text').textContent = d.text;
+    openModal(document.getElementById('lore-modal'));
+  }
+});
+document.getElementById('lore-close').addEventListener('click', () => closeModal(document.getElementById('lore-modal')));
+</script>
+
+<script>
+document.getElementById('codex-close').addEventListener('click',()=>closeModal(document.getElementById('codex-modal')));
+document.getElementById('codex-sign-btn').addEventListener('click', () => {
+  const flash=document.createElement('div');
+  // Animate an overlay, never the body: fixed HUD and layout stay intact.
+  flash.style.cssText='position:fixed;inset:0;z-index:99;pointer-events:none;background:radial-gradient(circle,#ff4a1f77,transparent 70%)';
+  document.body.appendChild(flash);
+  gsap.fromTo(flash,{opacity:0},{opacity:1,duration:.12,repeat:1,yoyo:true,onComplete:()=>flash.remove()});
+  const panel=document.querySelector('#codex-modal .modal-card');
+  gsap.fromTo(panel,{x:-3},{x:3,duration:.06,repeat:5,yoyo:true,onComplete:()=>gsap.set(panel,{x:0})});
+});
+</script>
+
+<script>
+const pageTransition = document.getElementById('page-transition');
+document.querySelectorAll('a[href$=".html"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    gsap.to(pageTransition, { opacity:1, duration:.35, onComplete: () => { location.href = a.href; } });
+  });
+});
+function openModal(el){
+  el.style.display='flex';
+  gsap.fromTo(el, {opacity:0}, {opacity:1, duration:.25});
+  gsap.fromTo(el.querySelector('.modal-card'), {scale:.92, opacity:0}, {scale:1, opacity:1, duration:.35, ease:'back.out(1.4)'});
+}
+function closeModal(el){
+  gsap.to(el, {opacity:0, duration:.25, onComplete: () => { el.style.display='none'; } });
+}
+</script>
+
+
+<script>
+function updateReadingProgress(){const el=document.getElementById('codex-text'),range=el.scrollHeight-el.clientHeight;document.querySelector('#reading-progress>div').style.width=(range>0?Math.min(100,el.scrollTop/range*100):100)+'%';}
+document.getElementById('codex-text').addEventListener('scroll',updateReadingProgress,{passive:true});
+</script>
+</body>
+</html>

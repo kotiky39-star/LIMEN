@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS — Lore Feed</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    fontFamily: { sans:['Inter','system-ui','sans-serif'], cinzel:['Cinzel','Cormorant Garamond','Georgia','serif'] },
+    colors: { nexus:'#38bdf8' }
+  } } }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
+<style>
+  :root { --noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.5'/></svg>"); }
+  html,body { background:#030712; }
+  body { font-family:'Inter',system-ui,sans-serif; color:#e2e8f0; overflow-x:hidden; }
+  .grain { position:fixed; inset:-50%; z-index:60; pointer-events:none; opacity:.05; background-image:var(--noise); animation:grain 1.2s steps(6) infinite; }
+  @keyframes grain { 0%,100%{transform:translate(0,0)} 20%{transform:translate(-3%,2%)} 40%{transform:translate(2%,-3%)} 60%{transform:translate(-2%,-1%)} 80%{transform:translate(3%,3%)} }
+  .glass { background:rgba(255,255,255,.06); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border:1px solid rgba(255,255,255,.12); }
+  .nav-link { position:relative; opacity:.65; transition:opacity .3s; }
+  .nav-link:hover,.nav-link.is-active { opacity:1; }
+  .nav-link::after { content:''; position:absolute; left:0; bottom:-4px; height:1px; width:100%; background:#38bdf8; transform:scaleX(0); transform-origin:right; transition:transform .5s cubic-bezier(.2,.8,.2,1); }
+  .nav-link:hover::after,.nav-link.is-active::after { transform:scaleX(1); transform-origin:left; }
+  .post { transition:transform .3s; }
+  .post:hover { transform:translateY(-4px); }
+  .tag { background:rgba(56,189,248,.12); border:1px solid rgba(56,189,248,.3); }
+@media (max-width:768px) {
+  header .glass { flex-direction:column; align-items:stretch; gap:.75rem; }
+  nav { justify-content:center; flex-wrap:wrap; }
+  .search-wrap { max-width:100%; }
+}
+
+.modal { position:fixed; inset:0; z-index:80; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.7); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
+.modal-card { max-width:720px; width:92%; max-height:85vh; overflow:auto; position:relative; }
+.tab-btn { opacity:.6; border-bottom:2px solid transparent; padding:.5rem 0; transition:opacity .3s,border-color .3s; }
+.tab-btn.is-active { opacity:1; border-color:#38bdf8; color:#38bdf8; }
+
+.filter-btn { opacity:.6; border:1px solid rgba(255,255,255,.12); transition:opacity .3s, border-color .3s, color .3s; }
+.filter-btn.is-active { opacity:1; border-color:#38bdf8; color:#38bdf8; }
+.post-cover { width:100%; height:200px; object-fit:cover; border-radius:8px; margin-bottom:1rem; }
+.post-quote { border-left:3px solid #38bdf8; padding-left:1rem; margin:1rem 0; font-style:italic; color:rgba(226,232,240,.7); }
+
+/* Cinematic Nexus visual system */
+:root{--accent:#38bdf8}
+body{background:radial-gradient(circle at 50% 0%,#151525 0%,#050505 100%);color:#e0e0e0;font-family:Inter,system-ui,sans-serif;isolation:isolate}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.35;background-image:radial-gradient(1px 1px at 20px 30px,#fff 98%,transparent),radial-gradient(1px 1px at 95px 115px,#8ccfff 98%,transparent);background-size:173px 191px,277px 263px}
+h1,h2,h3,.font-cinzel{font-family:Cinzel,Georgia,serif;text-shadow:0 0 10px #ffffff33}
+.glass,.modal-card,.collection-cover{background:rgba(15,15,20,.7);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid #ffffff1a;border-radius:12px}
+.modal{background:#000b;backdrop-filter:blur(16px);padding:16px}.modal-nested{background:#000d}
+.modal-card{box-shadow:0 24px 100px #0009}
+.card{transition:border-color .3s,box-shadow .3s,scale .3s}.card:hover{scale:1.02;border-color:var(--accent);box-shadow:0 0 28px #38bdf826}
+header>.glass{box-shadow:0 12px 40px #0006}
+input,textarea,select{color:#e0e0e0;background:#090c14!important;transition:border-color .25s,box-shadow .25s}input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 14px #38bdf82b}option{background:#090c14}
+img{background:#10131b}button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+@media(max-width:768px){header>.glass{gap:10px;padding:12px 16px}header nav{display:flex;font-size:10px;gap:16px}.search-wrap{width:100%}main{padding-top:240px!important;padding-bottom:100px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+.post{padding:28px}.post-cover{height:260px;filter:saturate(.7)}.post-quote{border-color:#d4af6a;background:#ffffff03;padding:16px}
+.like-btn:hover,.like-btn.text-red-400{color:#ff4266;text-shadow:0 0 12px #ff4266}#open-theory{box-shadow:0 0 30px #38bdf820}
+
+.modal-card{font-size:1rem;line-height:1.6}
+.card:hover{box-shadow:0 0 28px color-mix(in srgb,var(--accent) 20%,transparent)}
+</style>
+<script src="data.js"></script>
+</head>
+<body class="min-h-screen">
+<div class="grain"></div>
+<div id="page-transition" class="fixed inset-0 bg-black z-[100] opacity-0 pointer-events-none"></div>
+<header class="fixed top-0 left-0 right-0 z-50">
+  <div class="glass mx-4 mt-4 rounded-2xl px-5 py-3 flex items-center gap-4">
+    <a href="index.html" class="font-cinzel tracking-[.35em] text-lg text-white">NEXUS</a>
+    <nav class="hidden md:flex gap-6 text-xs uppercase tracking-[.25em]">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="lore.html" class="nav-link is-active">Lore</a>
+      <a href="profile.html" class="nav-link">Profile</a>
+    </nav>
+    <div class="search-wrap relative flex-1 max-w-md mx-auto">
+      <input id="nexus-search" type="text" placeholder="Search the nexus..." class="w-full bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm outline-none focus:border-nexus/60">
+      <div id="search-results" class="absolute top-full mt-2 w-full glass rounded-xl overflow-hidden hidden z-50"></div>
+    </div>
+    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-nexus to-indigo-600 grid place-items-center text-sm font-semibold">A</div>
+  </div>
+</header>
+
+<button id="open-theory" class="fixed bottom-6 right-6 glass rounded-full px-5 py-3 text-sm uppercase tracking-[.2em] z-40">+ Create Theory</button>
+
+<main class="relative pt-28 px-6 max-w-3xl mx-auto space-y-6">
+  <h1 class="font-cinzel text-3xl mb-2">Community Theories</h1>
+  <p class="text-white/50 text-sm mb-6">User-generated lore from across the nexus.</p>
+  <div class="flex flex-wrap gap-3 mb-6">
+    <button class="filter-btn glass rounded-full px-4 py-2 text-sm is-active" data-filter="all">All</button>
+    <button class="filter-btn glass rounded-full px-4 py-2 text-sm" data-filter="RDR2">#RDR2</button>
+    <button class="filter-btn glass rounded-full px-4 py-2 text-sm" data-filter="Cyberpunk">#Cyberpunk</button>
+    <button class="filter-btn glass rounded-full px-4 py-2 text-sm" data-filter="Witcher">#Witcher</button>
+  </div>
+  <div id="lore-feed" class="space-y-6">
+  <article class="glass rounded-2xl p-6 post card">
+    <div class="flex items-center gap-3 mb-3">
+      <div class="w-9 h-9 rounded-full bg-gradient-to-br from-nexus to-indigo-600 grid place-items-center text-sm font-semibold">M</div>
+      <div><p class="text-sm font-semibold">MorganFan92</p><p class="text-xs text-white/40">2h ago</p></div>
+    </div>
+    <h2 class="font-cinzel text-xl mb-2">Arthur's Journal: Hidden Pages</h2>
+    <p class="text-white/60 text-sm">A close read of the journal reveals entries that only appear after high honor choices, hinting at a deeper redemption arc.</p>
+    <div class="mt-4 flex flex-wrap items-center gap-3 text-xs">
+      <button class="like-btn flex items-center gap-1 text-white/50 hover:text-red-400 transition" data-likes="12">♡ <span>12</span></button>
+      <button class="comment-btn text-white/50 hover:text-nexus transition">💬 Comment</button><span class="tag rounded-full px-3 py-1">#RDR2</span><span class="tag rounded-full px-3 py-1">#Theory</span></div>
+  </article>
+
+  <article class="glass rounded-2xl p-6 post card">
+    <div class="flex items-center gap-3 mb-3">
+      <div class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 grid place-items-center text-sm font-semibold">N</div>
+      <div><p class="text-sm font-semibold">NightCityNetrunner</p><p class="text-xs text-white/40">5h ago</p></div>
+    </div>
+    <h2 class="font-cinzel text-xl mb-2">The Blackwall Is a Lie</h2>
+    <p class="text-white/60 text-sm">Evidence suggests the Blackwall is not a barrier but a membrane, and something on the other side is already leaking through.</p>
+    <div class="mt-4 flex flex-wrap items-center gap-3 text-xs">
+      <button class="like-btn flex items-center gap-1 text-white/50 hover:text-red-400 transition" data-likes="12">♡ <span>12</span></button>
+      <button class="comment-btn text-white/50 hover:text-nexus transition">💬 Comment</button><span class="tag rounded-full px-3 py-1">#Cyberpunk</span><span class="tag rounded-full px-3 py-1">#Theory</span></div>
+  </article>
+
+  <article class="glass rounded-2xl p-6 post card">
+    <div class="flex items-center gap-3 mb-3">
+      <div class="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-red-600 grid place-items-center text-sm font-semibold">E</div>
+      <div><p class="text-sm font-semibold">EldenScholar</p><p class="text-xs text-white/40">1d ago</p></div>
+    </div>
+    <h2 class="font-cinzel text-xl mb-2">Marika and the Missing Rune</h2>
+    <p class="text-white/60 text-sm">Tracing the iconography across the Lands Between to reconstruct the shattered order before the Shattering.</p>
+    <div class="mt-4 flex flex-wrap items-center gap-3 text-xs">
+      <button class="like-btn flex items-center gap-1 text-white/50 hover:text-red-400 transition" data-likes="12">♡ <span>12</span></button>
+      <button class="comment-btn text-white/50 hover:text-nexus transition">💬 Comment</button><span class="tag rounded-full px-3 py-1">#EldenRing</span><span class="tag rounded-full px-3 py-1">#Theory</span></div>
+  </article>
+</div>
+</main>
+
+<div id="theory-modal" class="modal">
+  <div class="modal-card glass rounded-2xl p-6">
+    <form id="theory-form" class="space-y-4">
+      <input id="theory-title" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2" placeholder="Title" required>
+      <textarea id="theory-text" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 min-h-[120px]" placeholder="Your theory..." required></textarea>
+      <input id="theory-image" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2" placeholder="Image URL (optional)">
+      <input id="theory-quote" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2" placeholder="Quote (optional)">
+      <select id="theory-game" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2"></select>
+      <button type="submit" class="glass rounded-full px-6 py-2">Publish</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  const lenis = new Lenis({duration:1.1});
+  function raf(t){ lenis.raf(t); requestAnimationFrame(raf); }
+  requestAnimationFrame(raf);
+</script>
+
+<script>
+const theorySelect = document.getElementById('theory-game');
+Object.values(GAMES).forEach(g => {
+  const o = document.createElement('option');
+  o.value = g.id; o.textContent = g.title;
+  theorySelect.appendChild(o);
+});
+document.getElementById('open-theory').addEventListener('click', () => openModal(document.getElementById('theory-modal')));
+document.getElementById('theory-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const title = document.getElementById('theory-title').value.trim();
+  const text = document.getElementById('theory-text').value.trim();
+  const imageUrl = document.getElementById('theory-image').value.trim();
+  const quote = document.getElementById('theory-quote').value.trim();
+  const gameId = document.getElementById('theory-game').value;
+  const game = GAMES[gameId];
+  const card = document.createElement('article');
+  card.className = 'glass rounded-2xl p-6 post card';
+  card.innerHTML = `
+    ${imageUrl ? `<img src="${nexusImage(imageUrl)}" class="post-cover" alt="Cover">` : ''}
+    ${quote ? `<div class="post-quote">“${quote}”</div>` : ''}
+    <h2 class="font-cinzel text-xl mb-2">${title}</h2>
+    <p class="text-white/60 text-sm">${text}</p>
+    <div class="mt-4 flex flex-wrap items-center gap-3 text-xs">
+      <button class="like-btn flex items-center gap-1 text-white/50 hover:text-red-400 transition" data-likes="0">♡ <span>0</span></button>
+      <button class="comment-btn text-white/50 hover:text-nexus transition">💬 Comment</button>
+      <span class="tag rounded-full px-3 py-1">#${game.title}</span><span class="tag rounded-full px-3 py-1">#Theory</span>
+    </div>`;
+  document.getElementById('lore-feed').prepend(card);
+  e.target.reset();
+  closeModal(document.getElementById('theory-modal'));
+});
+document.addEventListener('click', e => {
+  const like = e.target.closest('.like-btn');
+  if (like) {
+    const count = like.querySelector('span');
+    let n = parseInt(like.dataset.likes || count.textContent, 10) + 1;
+    like.dataset.likes = n;
+    count.textContent = n;
+    like.classList.add('text-red-400');
+  }
+  const comment = e.target.closest('.comment-btn');
+  if (comment) showToast('Comments coming soon');
+});
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 glass rounded-full px-5 py-2 text-sm z-[90]';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  gsap.fromTo(t, {opacity:0, y:20}, {opacity:1, y:0, duration:.3});
+  setTimeout(() => gsap.to(t, {opacity:0, y:20, duration:.3, onComplete: () => t.remove()}), 1800);
+}
+</script>
+
+<script>
+const pageTransition = document.getElementById('page-transition');
+document.querySelectorAll('a[href$=".html"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    gsap.to(pageTransition, { opacity:1, duration:.35, onComplete: () => { location.href = a.href; } });
+  });
+});
+function openModal(el){
+  el.style.display='flex';
+  gsap.fromTo(el, {opacity:0}, {opacity:1, duration:.25});
+  gsap.fromTo(el.querySelector('.modal-card'), {scale:.92, opacity:0}, {scale:1, opacity:1, duration:.35, ease:'back.out(1.4)'});
+}
+function closeModal(el){
+  gsap.to(el, {opacity:0, duration:.25, onComplete: () => { el.style.display='none'; } });
+}
+</script>
+
+<script>
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('is-active'));
+    btn.classList.add('is-active');
+    const filter = btn.dataset.filter;
+    document.querySelectorAll('#lore-feed .post').forEach(post => {
+      post.style.display = (filter === 'all' || post.textContent.includes('#' + filter)) ? '' : 'none';
+    });
+  });
+});
+</script>
+</body>
+</html>

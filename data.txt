@@ -1,0 +1,33 @@
+const GAMES = {
+  rdr2: { id:'rdr2', title:'RED DEAD REDEMPTION II', subtitle:'A cinematic frontier of outlaws.', heroColor:'#8b0000', desc:'Outlaws, loyalty, and the slow death of the West.' },
+  cyberpunk: { id:'cyberpunk', title:'CYBERPUNK 2077', subtitle:'Seize the future of Night City.', heroColor:'#fcee0a', desc:'Cyber-enhanced mercenaries, corporations, and the blackwall.' },
+  witcher3: { id:'witcher3', title:'THE WITCHER 3: WILD HUNT', subtitle:'A monster hunter\'s final contract.', heroColor:'#2f5597', desc:'Geralt searches for Ciri across a war-torn world.' },
+  eldenring: { id:'eldenring', title:'ELDEN RING', subtitle:'Rise, Tarnished.', heroColor:'#c9a227', desc:'A shattered order and the path to the Elden Throne.' },
+  ac: { id:'ac', title:'ASSASSIN\'S CREED', subtitle:'Nothing is true, everything is permitted.', heroColor:'#c8102e', desc:'A war across centuries between Assassins and Templars.' }
+};
+
+function initNexusSearch() {
+  const input = document.getElementById('nexus-search');
+  const results = document.getElementById('search-results');
+  if (!input || !results) return;
+  const wrap = input.closest('.search-wrap');
+  const render = (q) => {
+    const term = q.trim().toLowerCase();
+    if (!term) { results.classList.add('hidden'); return; }
+    const matches = Object.values(GAMES).filter(g => g.title.toLowerCase().includes(term));
+    if (!matches.length) { results.classList.add('hidden'); return; }
+    results.innerHTML = matches.map(g =>
+      `<button type="button" class="block w-full text-left px-4 py-2 text-sm hover:bg-white/10" data-id="${g.id}">${g.title}</button>`
+    ).join('');
+    results.classList.remove('hidden');
+  };
+  input.addEventListener('input', e => render(e.target.value));
+  results.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-id]');
+    if (btn) location.href = `universe.html?game=${btn.dataset.id}`;
+  });
+  document.addEventListener('click', e => {
+    if (wrap && !wrap.contains(e.target)) results.classList.add('hidden');
+  });
+}
+document.addEventListener('DOMContentLoaded', initNexusSearch);

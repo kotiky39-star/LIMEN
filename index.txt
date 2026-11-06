@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS — Constellation Map</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    fontFamily: { sans:['Inter','system-ui','sans-serif'], cinzel:['Cinzel','Cormorant Garamond','Georgia','serif'] },
+    colors: { nexus:'#38bdf8', ink:'#030712' }
+  } } }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
+<style>
+  :root { --noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.5'/></svg>"); }
+  html,body { background:#030712; }
+  body { font-family:'Inter',system-ui,sans-serif; color:#e2e8f0; overflow-x:hidden; }
+  .grain { position:fixed; inset:-50%; z-index:60; pointer-events:none; opacity:.05; background-image:var(--noise); animation:grain 1.2s steps(6) infinite; }
+  @keyframes grain { 0%,100%{transform:translate(0,0)} 20%{transform:translate(-3%,2%)} 40%{transform:translate(2%,-3%)} 60%{transform:translate(-2%,-1%)} 80%{transform:translate(3%,3%)} }
+  .glass { background:rgba(255,255,255,.06); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border:1px solid rgba(255,255,255,.12); }
+  .nav-link { position:relative; opacity:.65; transition:opacity .3s; }
+  .nav-link:hover,.nav-link.is-active { opacity:1; }
+  .nav-link::after { content:''; position:absolute; left:0; bottom:-4px; height:1px; width:100%; background:#38bdf8; transform:scaleX(0); transform-origin:right; transition:transform .5s cubic-bezier(.2,.8,.2,1); }
+  .nav-link:hover::after,.nav-link.is-active::after { transform:scaleX(1); transform-origin:left; }
+  .node { position:absolute; transform:translate(-50%,-50%); cursor:pointer; }
+  .node .dot { display:block; width:16px; height:16px; border-radius:9999px; background:#38bdf8; box-shadow:0 0 18px #38bdf8, 0 0 40px rgba(56,189,248,.5); transition:transform .3s; }
+  .node:hover .dot { transform:scale(1.35); }
+  .node .label { display:block; margin-top:10px; font-size:11px; letter-spacing:.25em; text-transform:uppercase; color:rgba(226,232,240,.8); text-align:center; white-space:nowrap; }
+  .line { stroke:rgba(56,189,248,.45); stroke-width:.4; filter:drop-shadow(0 0 4px #38bdf8); }
+@media (max-width:768px) {
+  header .glass { flex-direction:column; align-items:stretch; gap:.75rem; }
+  nav { justify-content:center; flex-wrap:wrap; }
+  .search-wrap { max-width:100%; }
+  #map { height:55vh; }
+}
+
+.modal { position:fixed; inset:0; z-index:80; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.7); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
+.modal-card { max-width:720px; width:92%; max-height:85vh; overflow:auto; position:relative; }
+.tab-btn { opacity:.6; border-bottom:2px solid transparent; padding:.5rem 0; transition:opacity .3s,border-color .3s; }
+.tab-btn.is-active { opacity:1; border-color:#38bdf8; color:#38bdf8; }
+
+.node:hover .dot { animation: pulseGlow 1.2s ease-in-out infinite; }
+@keyframes pulseGlow {
+  0%,100% { box-shadow:0 0 18px #38bdf8, 0 0 40px rgba(56,189,248,.5); transform:scale(1); }
+  50% { box-shadow:0 0 32px #38bdf8, 0 0 70px rgba(56,189,248,.7); transform:scale(1.15); }
+}
+</style>
+<script src="data.js"></script>
+</head>
+<body class="min-h-screen">
+<div class="grain"></div>
+<div id="page-transition" class="fixed inset-0 bg-black z-[100] opacity-0 pointer-events-none"></div>
+<header class="fixed top-0 left-0 right-0 z-50">
+  <div class="glass mx-4 mt-4 rounded-2xl px-5 py-3 flex items-center gap-4">
+    <a href="index.html" class="font-cinzel tracking-[.35em] text-lg text-white">NEXUS</a>
+    <nav class="hidden md:flex gap-6 text-xs uppercase tracking-[.25em]">
+      <a href="index.html" class="nav-link is-active">Home</a>
+      <a href="lore.html" class="nav-link">Lore</a>
+      <a href="profile.html" class="nav-link">Profile</a>
+    </nav>
+    <div class="search-wrap relative flex-1 max-w-md mx-auto">
+      <input id="nexus-search" type="text" placeholder="Search the nexus..." class="w-full bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm outline-none focus:border-nexus/60">
+      <div id="search-results" class="absolute top-full mt-2 w-full glass rounded-xl overflow-hidden hidden z-50"></div>
+    </div>
+    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-nexus to-indigo-600 grid place-items-center text-sm font-semibold">A</div>
+  </div>
+</header>
+
+<main class="relative min-h-screen pt-24 overflow-hidden">
+  <div class="absolute inset-0" style="background:radial-gradient(ellipse at 50% 40%,rgba(56,189,248,.12),transparent 60%),linear-gradient(180deg,#030712,#050a1f);"></div>
+  <div class="relative max-w-6xl mx-auto px-6 pt-6 text-center">
+    <p class="text-nexus text-[10px] uppercase tracking-[.5em]">Interactive Game Nexus</p>
+    <h1 class="font-cinzel text-4xl md:text-6xl mt-3" style="text-shadow:0 0 18px rgba(56,189,248,.45)">Constellation Map</h1>
+  </div>
+  <div id="map" class="relative mx-auto mt-6 w-full max-w-5xl h-[70vh]">
+    <svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <line class="line" x1="18" y1="28" x2="78" y2="22"/>
+      <line class="line" x1="78" y1="22" x2="48" y2="52"/>
+      <line class="line" x1="48" y1="52" x2="24" y2="72"/>
+      <line class="line" x1="24" y1="72" x2="76" y2="70"/>
+      <line class="line" x1="76" y1="70" x2="18" y2="28"/>
+    </svg>
+    <button class="node" style="left:18%;top:28%" data-game="rdr2" title="RED DEAD REDEMPTION II"><span class="dot"></span><span class="label">RDR2</span></button>
+    <button class="node" style="left:78%;top:22%" data-game="cyberpunk" title="CYBERPUNK 2077"><span class="dot"></span><span class="label">Cyberpunk</span></button>
+    <button class="node" style="left:48%;top:52%" data-game="witcher3" title="THE WITCHER 3: WILD HUNT"><span class="dot"></span><span class="label">Witcher 3</span></button>
+    <button class="node" style="left:24%;top:72%" data-game="eldenring" title="ELDEN RING"><span class="dot"></span><span class="label">Elden Ring</span></button>
+    <button class="node" style="left:76%;top:70%" data-game="ac" title="ASSASSIN'S CREED"><span class="dot"></span><span class="label">AC</span></button>
+  </div>
+</main>
+
+<script>
+  const lenis = new Lenis({duration:1.1});
+  function raf(t){ lenis.raf(t); requestAnimationFrame(raf); }
+  requestAnimationFrame(raf);
+
+  const map = document.getElementById('map');
+  window.addEventListener('mousemove', e => {
+    const x = (e.clientX/window.innerWidth - .5)*40;
+    const y = (e.clientY/window.innerHeight - .5)*40;
+    gsap.to(map, {x,y,duration:1,ease:'power2.out'});
+  });
+
+  gsap.from('.node', {opacity:0, scale:0, stagger:.12, duration:.8, ease:'back.out(1.6)'});
+  gsap.from('.line', {opacity:0, stagger:.1, duration:1.2});
+
+  document.querySelectorAll('.node').forEach(n=>{
+    n.addEventListener('click',()=>{
+      gsap.timeline()
+        .to(n,{scale:3, boxShadow:'0 0 90px #38bdf8', duration:.3})
+        .to(map,{opacity:0, scale:1.3, duration:.5},0)
+        .to(pageTransition,{opacity:1, duration:.5},0)
+        .add(()=>{ window.location.href = 'universe.html?game=' + n.dataset.game; },0.8);
+    });
+  });
+</script>
+
+<script>
+const pageTransition = document.getElementById('page-transition');
+document.querySelectorAll('a[href$=".html"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    gsap.to(pageTransition, { opacity:1, duration:.35, onComplete: () => { location.href = a.href; } });
+  });
+});
+function openModal(el){
+  el.style.display='flex';
+  gsap.fromTo(el, {opacity:0}, {opacity:1, duration:.25});
+  gsap.fromTo(el.querySelector('.modal-card'), {scale:.92, opacity:0}, {scale:1, opacity:1, duration:.35, ease:'back.out(1.4)'});
+}
+function closeModal(el){
+  gsap.to(el, {opacity:0, duration:.25, onComplete: () => { el.style.display='none'; } });
+}
+</script>
+</body>
+</html>

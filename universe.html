@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OBSIDIAN ARCHIVE // CLASSIFIED DOSSIER</title>
+<meta name="description" content="Classified dossier terminal for the Obsidian Archive universe.">
+<meta name="theme-color" content="#0a0a0c">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+/* ================= OBSIDIAN ARCHIVE // TERMINAL CORE ================= */
+:root{
+  --ground:#0a0a0c;
+  --bone:#e5dfd1;
+  --brass:#b9975b;
+  --accent:#b9975b;
+  --glow:rgba(185,151,91,.32);
+  --glow:color-mix(in srgb,var(--accent) 32%,transparent);
+  --dim:rgba(229,223,209,.62);
+  --faint:rgba(229,223,209,.34);
+  --line:rgba(185,151,91,.30);
+  --line-soft:rgba(185,151,91,.14);
+  --mono:'JetBrains Mono','Courier New',monospace;
+  --title:'Cinzel',Georgia,'Times New Roman',serif;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{background:var(--ground);scrollbar-color:var(--brass) #050506}
+body{
+  min-height:100vh;background:var(--ground);color:var(--bone);
+  font-family:var(--mono);font-size:14px;line-height:1.75;
+  overflow-x:hidden;-webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--accent);color:#0a0a0c}
+
+/* CRT scanlines */
+body::after{
+  content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0px,rgba(0,0,0,.14) 1px,transparent 1px,transparent 3px);
+}
+#vignette{position:fixed;inset:0;z-index:9997;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 45%,transparent 52%,rgba(0,0,0,.62) 100%)}
+#flicker{position:fixed;inset:0;z-index:9996;pointer-events:none;background:var(--accent);opacity:0;mix-blend-mode:overlay}
+#wipe{position:fixed;inset:0;z-index:9999;background:var(--ground);opacity:0;pointer-events:none}
+
+/* ASCII corners */
+.corner{position:fixed;font-size:18px;color:rgba(185,151,91,.4);z-index:100;pointer-events:none;line-height:1;font-family:var(--mono)}
+.corner.tl{top:12px;left:16px}.corner.tr{top:12px;right:16px}
+.corner.bl{bottom:12px;left:16px}.corner.br{bottom:12px;right:16px}
+
+/* Top bar */
+#topbar{position:sticky;top:0;z-index:300;background:rgba(10,10,12,.94);border-bottom:1px solid var(--line);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.bar{max-width:1120px;margin:0 auto;padding:13px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{font-family:var(--title);font-size:13px;letter-spacing:.34em;color:var(--brass);text-decoration:none;text-transform:uppercase;white-space:nowrap}
+.brand:hover{color:var(--bone)}
+.tnav{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto}
+.tnav a{
+  color:var(--dim);text-decoration:none;font-size:11px;letter-spacing:.18em;
+  padding:5px 10px;border:1px solid transparent;text-transform:uppercase;
+  transition:color .2s,border-color .2s,background .2s,box-shadow .2s;
+}
+.tnav a:hover{color:var(--bone);border-color:var(--line);background:rgba(185,151,91,.08)}
+.tnav a.on{color:var(--accent);border-color:var(--accent);box-shadow:0 0 14px var(--glow)}
+
+/* Layout */
+.wrap{max-width:1120px;margin:0 auto;padding:30px 20px 110px}
+.frame{
+  border:1px solid var(--line);position:relative;padding:22px;
+  background:linear-gradient(180deg,rgba(185,151,91,.045),rgba(0,0,0,.28));
+  box-shadow:inset 0 0 60px rgba(0,0,0,.55);
+}
+.frame+.frame,.frame+.tabs,.tabs+.frame{margin-top:18px}
+.sep{
+  color:var(--brass);font-size:11px;letter-spacing:.18em;white-space:pre;
+  overflow:hidden;text-transform:uppercase;margin-bottom:16px;opacity:.85;
+}
+.sep.acc{color:var(--accent)}
+
+/* Dossier head */
+.title{
+  font-family:var(--title);font-weight:700;text-transform:uppercase;
+  font-size:clamp(30px,6.4vw,64px);line-height:1.06;letter-spacing:.14em;
+  color:var(--accent);text-shadow:0 0 26px var(--glow);word-break:break-word;
+}
+.subtitle{margin-top:10px;color:var(--dim);font-size:13px;letter-spacing:.16em;font-style:italic}
+.meta{margin-top:18px;border-top:1px dashed var(--line-soft);padding-top:14px;display:grid;gap:3px}
+.meta div{font-size:12px;letter-spacing:.08em;color:var(--dim);white-space:pre-wrap;word-break:break-word}
+.meta b{color:var(--brass);font-weight:500}
+.row{margin-top:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.lbl{font-size:11px;letter-spacing:.18em;color:var(--brass);text-transform:uppercase;white-space:nowrap}
+
+/* Controls */
+.tinput,select.tinput{
+  background:rgba(0,0,0,.55);border:1px solid var(--line);color:var(--bone);
+  font-family:var(--mono);font-size:12px;letter-spacing:.1em;padding:9px 12px;width:100%;
+  transition:border-color .2s,box-shadow .2s;
+}
+select.tinput{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:30px;
+  background-image:linear-gradient(45deg,transparent 50%,var(--brass) 50%),linear-gradient(135deg,var(--brass) 50%,transparent 50%);
+  background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+select.tinput option{background:#0a0a0c;color:var(--bone)}
+.tinput:focus{outline:none;border-color:var(--accent);box-shadow:0 0 16px var(--glow)}
+.btn{
+  font-family:var(--mono);background:transparent;color:var(--brass);border:1px solid var(--line);
+  padding:9px 18px;font-size:11px;letter-spacing:.22em;cursor:pointer;text-transform:uppercase;
+  text-decoration:none;display:inline-block;text-align:center;
+  transition:background .2s,color .2s,border-color .2s,box-shadow .2s,transform .08s;
+}
+.btn:hover{background:rgba(185,151,91,.14);color:var(--bone);border-color:var(--accent);box-shadow:0 0 18px var(--glow)}
+.btn:active{transform:translateY(1px)}
+.btn.big{
+  display:block;width:100%;margin-top:22px;padding:22px 16px;
+  font-size:clamp(13px,2.6vw,19px);letter-spacing:.34em;
+  border-color:var(--accent);color:var(--accent);
+}
+.btn.big:hover{background:rgba(185,151,91,.1);color:var(--bone)}
+
+/* Tabs */
+.tabs{display:flex;gap:10px;flex-wrap:wrap}
+.tab{
+  flex:1 1 160px;font-family:var(--mono);background:rgba(0,0,0,.4);color:var(--faint);
+  border:1px solid var(--line-soft);padding:12px 14px;font-size:12px;letter-spacing:.2em;
+  cursor:pointer;text-transform:uppercase;text-align:left;
+  transition:color .2s,border-color .2s,background .2s,box-shadow .2s;
+}
+.tab:hover{color:var(--bone);border-color:var(--line);background:rgba(185,151,91,.07)}
+.tab.on{color:var(--accent);border-color:var(--accent);background:rgba(185,151,91,.1);box-shadow:0 0 18px var(--glow)}
+
+/* Data stream */
+#panel{min-height:220px}
+.blk{border-left:2px solid var(--line-soft);padding:2px 0 2px 14px;margin-bottom:18px;transition:border-color .25s,background .25s}
+.blk:last-child{margin-bottom:4px}
+.blk.click{cursor:pointer}
+.blk.click:hover{border-left-color:var(--accent);background:rgba(185,151,91,.05)}
+.blk.head{border-left-color:var(--accent)}
+.ln{white-space:pre-wrap;word-break:break-word;font-size:13px;letter-spacing:.04em;color:var(--dim)}
+.ln.h{color:var(--accent);font-size:13px;letter-spacing:.14em;text-transform:uppercase}
+.ln.s{color:var(--brass);font-size:11px;letter-spacing:.16em;text-transform:uppercase}
+.ln.q{color:var(--bone);font-style:italic}
+.ln.p{color:var(--bone)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chip{border:1px solid var(--line);color:var(--brass);font-size:10px;letter-spacing:.16em;padding:3px 9px;text-transform:uppercase}
+.hint{margin-top:16px;font-size:10px;letter-spacing:.2em;color:var(--faint);text-transform:uppercase}
+.caret::after{content:'_';color:var(--accent);animation:blink 1s steps(1) infinite}
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes gl{
+  0%{text-shadow:3px 0 var(--accent),-3px 0 var(--bone)}
+  33%{text-shadow:-3px 0 var(--accent),3px 0 var(--bone)}
+  66%{text-shadow:2px 0 var(--bone),-2px 0 var(--accent)}
+  100%{text-shadow:0 0 26px var(--glow)}
+}
+.glitching{animation:gl .16s steps(2) 3}
+
+/* Footer */
+#footer{position:fixed;bottom:0;left:0;right:0;height:34px;z-index:200;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(to top,rgba(10,10,12,.96),transparent);pointer-events:none}
+#footer span{font-size:9px;letter-spacing:.34em;color:rgba(185,151,91,.45);text-transform:uppercase}
+
+/* Toast */
+#toast{position:fixed;left:50%;bottom:52px;transform:translateX(-50%);z-index:400;
+  border:1px solid var(--accent);background:rgba(10,10,12,.96);color:var(--bone);
+  padding:10px 18px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  box-shadow:0 0 24px var(--glow);opacity:0;pointer-events:none;max-width:90vw;text-align:center}
+
+/* Terminal modal */
+#modal{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center;padding:20px;
+  background:rgba(5,5,6,.86);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+#modal.open{display:flex}
+.mwin{position:relative;width:min(720px,100%);max-height:86vh;overflow:auto;border:1px solid var(--accent);
+  background:var(--ground);box-shadow:0 0 60px rgba(0,0,0,.9),0 0 30px var(--glow);padding:26px}
+.mwin .mbar{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:16px}
+.mwin .mbar span{color:var(--accent);font-size:11px;letter-spacing:.2em;text-transform:uppercase}
+.mclose{font-family:var(--mono);background:transparent;border:1px solid var(--line);color:var(--brass);
+  font-size:10px;letter-spacing:.18em;padding:5px 10px;cursor:pointer;transition:all .2s}
+.mclose:hover{color:var(--bone);border-color:var(--accent);box-shadow:0 0 14px var(--glow)}
+.mwin h2{font-family:var(--title);font-size:clamp(20px,4vw,30px);letter-spacing:.12em;color:var(--accent);
+  text-transform:uppercase;margin-bottom:14px;line-height:1.2}
+
+/* Responsive */
+@media(max-width:768px){
+  body{font-size:13px}
+  .wrap{padding:20px 14px 96px}
+  .frame{padding:16px 14px}
+  .bar{padding:11px 14px;gap:10px}
+  .tnav{margin-left:0;width:100%;justify-content:space-between;gap:6px}
+  .tnav a{flex:1;text-align:center;padding:6px 4px;font-size:10px;letter-spacing:.1em}
+  .brand{width:100%;text-align:center;font-size:11px;letter-spacing:.24em}
+  .tabs{flex-direction:column}
+  .tab{flex:1 1 auto}
+  .row{flex-direction:column;align-items:stretch;gap:8px}
+  .lbl{width:100%}
+  .corner{font-size:14px}
+  .mwin{padding:18px 14px}
+  .ln{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
+}
+</style>
+</head>
+<body>
+
+<div id="wipe"></div>
+<div id="flicker"></div>
+<div id="vignette"></div>
+
+<div class="corner tl">+</div>
+<div class="corner tr">+</div>
+<div class="corner bl">+</div>
+<div class="corner br">+</div>
+
+<header id="topbar">
+  <div class="bar">
+    <a class="brand" href="index.html">[ OBSIDIAN ARCHIVE ]</a>
+    <nav class="tnav">
+      <a href="index.html">&gt; HOME</a>
+      <a href="universe.html" class="on">&gt; UNIVERSE</a>
+      <a href="lore.html">&gt; LORE</a>
+      <a href="profile.html">&gt; PROFILE</a>
+      <a href="terminal.html" id="oa-term-btn" title="Press ~ to toggle drawer">&gt;_ TERMINAL</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="frame" id="head-frame">
+    <div class="sep acc" id="sep-head">+---[ CLASSIFIED DOSSIER // EYES ONLY ]---</div>
+    <h1 class="title" id="g-title">LOADING</h1>
+    <div class="subtitle" id="g-subtitle"></div>
+    <div class="meta" id="g-meta"></div>
+    <div class="row">
+      <label class="lbl" for="game-select">&gt; SWITCH UNIVERSE:</label>
+      <select id="game-select" class="tinput" style="max-width:340px"></select>
+    </div>
+  </section>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab on" data-tab="codex" type="button">&gt; CODEX</button>
+    <button class="tab" data-tab="characters" type="button">&gt; CHARACTERS</button>
+    <button class="tab" data-tab="timeline" type="button">&gt; TIMELINE</button>
+  </nav>
+
+  <section class="frame" id="stream-frame">
+    <div class="sep" id="sep-stream">+---[ DATA STREAM ]---</div>
+    <div id="panel"></div>
+    <div class="hint caret" id="hint">&gt; CLICK STREAM TO SKIP DECRYPTION</div>
+  </section>
+
+  <a class="btn big" id="dive" href="#">[ INITIATE STORY DIVE ]</a>
+
+</main>
+
+<footer id="footer"><span>[ OBSIDIAN ARCHIVE // NODE 07 // CHANNEL ENCRYPTED ]</span></footer>
+
+<div id="toast"></div>
+
+<div id="modal" role="dialog" aria-modal="true">
+  <div class="mwin" id="mwin">
+    <div class="mbar">
+      <span id="m-tag">&gt; PERSONNEL FILE</span>
+      <button class="mclose" id="m-close" type="button">[ X ] CLOSE</button>
+    </div>
+    <h2 id="m-name"></h2>
+    <div id="m-body"></div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ---------------- constants ---------------- */
+var REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var ALIAS = {
+  mass_effect:'masseffect', witcher3:'witcher', the_witcher_3:'witcher',
+  elden_ring:'eldenring', ff:'finalfantasy', final_fantasy:'finalfantasy',
+  metal_gear:'metalgear', ac:'assassinscreed', assassins_creed:'assassinscreed',
+  elder_scrolls:'elder_scrolls', reddead:'rdr2', rdr:'rdr2'
+};
+var STORY = { rdr2:'rdr2_story.html', assassinscreed:'ac_franchise.html' };
+var PHOSPHOR = { amber:'#b9975b', green:'#5fd08a', ice:'#7fb6d9' };
+
+/* ---------------- dom ---------------- */
+var root       = document.documentElement;
+var panel      = document.getElementById('panel');
+var streamFrm  = document.getElementById('stream-frame');
+var sepStream  = document.getElementById('sep-stream');
+var titleEl    = document.getElementById('g-title');
+var subEl      = document.getElementById('g-subtitle');
+var metaEl     = document.getElementById('g-meta');
+var selEl      = document.getElementById('game-select');
+var diveEl     = document.getElementById('dive');
+var toastEl    = document.getElementById('toast');
+var modal      = document.getElementById('modal');
+var mwin       = document.getElementById('mwin');
+var mName      = document.getElementById('m-name');
+var mBody      = document.getElementById('m-body');
+var mTag       = document.getElementById('m-tag');
+var wipe       = document.getElementById('wipe');
+var flicker    = document.getElementById('flicker');
+
+var typeTL = null, game = null, gameId = 'rdr2', activeTab = 'codex';
+
+/* ---------------- helpers ---------------- */
+function plain(v){
+  var t = document.createElement('template');
+  t.innerHTML = String(v == null ? '' : v).replace(/\\+n/g, ' ');
+  return (t.content.textContent || '').replace(/\s+/g, ' ').trim();
+}
+function pad(n, w){ n = String(n); while(n.length < w) n = '0' + n; return n; }
+function lsGet(k, fb){ try{ var v = localStorage.getItem(k); return v == null ? fb : JSON.parse(v); }catch(e){ return fb; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function applyPhosphor(){
+  var p = lsGet('oa_profile', {}).phosphor || 'amber';
+  if(PHOSPHOR[p]) root.style.setProperty('--accent', PHOSPHOR[p]);
+}
+function toast(msg){
+  toastEl.textContent = msg;
+  gsap.killTweensOf(toastEl);
+  gsap.fromTo(toastEl, {opacity:0, y:14}, {opacity:1, y:0, duration:.28, ease:'power2.out'});
+  gsap.to(toastEl, {opacity:0, y:10, duration:.35, delay:2.4});
+}
+function glitch(el){
+  if(REDUCE) return;
+  el.classList.remove('glitching');
+  void el.offsetWidth;
+  el.classList.add('glitching');
+}
+
+/* ---------------- game resolution ---------------- */
+function allGames(){
+  if(typeof GAMES === 'undefined') return {};
+  return GAMES;
+}
+function resolveId(raw){
+  var list = allGames();
+  var id = String(raw || '').trim();
+  if(!id) return 'rdr2';
+  if(list[id]) return id;
+  if(ALIAS[id] && list[ALIAS[id]]) return ALIAS[id];
+  var norm = id.toLowerCase().replace(/[^a-z0-9]/g, '');
+  var keys = Object.keys(list);
+  for(var i = 0; i < keys.length; i++){
+    if(keys[i].toLowerCase().replace(/[^a-z0-9]/g, '') === norm) return keys[i];
+  }
+  var t = keys.filter(function(k){
+    return String(list[k].title || '').toLowerCase().replace(/[^a-z0-9]/g, '') === norm;
+  });
+  return t.length ? t[0] : 'rdr2';
+}
+
+/* ---------------- typed block renderer ---------------- */
+function killType(){ if(typeTL){ typeTL.kill(); typeTL = null; } }
+function skipType(){ if(typeTL){ typeTL.progress(1); typeTL = null; } }
+
+function renderBlocks(blocks){
+  killType();
+  panel.innerHTML = '';
+  var tl = gsap.timeline({onComplete:function(){ typeTL = null; }});
+  blocks.forEach(function(b){
+    var box = document.createElement('div');
+    box.className = 'blk' + (b.cls ? ' ' + b.cls : '') + (b.click ? ' click' : '');
+    if(b.data){ for(var k in b.data){ box.dataset[k] = b.data[k]; } }
+    panel.appendChild(box);
+    if(!REDUCE) tl.fromTo(box, {opacity:0, y:10}, {opacity:1, y:0, duration:.3, ease:'power2.out'});
+    (b.lines || []).forEach(function(ln, li){
+      var d = document.createElement('div');
+      d.className = 'ln' + (ln.cls ? ' ' + ln.cls : '');
+      box.appendChild(d);
+      var txt = ln.t == null ? '' : String(ln.t);
+      if(REDUCE){ d.textContent = txt; return; }
+      var proxy = {n:0};
+      tl.to(proxy, {
+        n: txt.length,
+        duration: Math.max(.08, Math.min(1.1, txt.length * 0.010)),
+        ease: 'none',
+        onUpdate: function(){ d.textContent = txt.slice(0, Math.round(proxy.n)); },
+        onComplete: function(){ d.textContent = txt; }
+      }, li === 0 ? '>-0.18' : '>-0.02');
+    });
+    if(b.chips){
+      var cw = document.createElement('div');
+      cw.className = 'chips';
+      b.chips.forEach(function(c){
+        var s = document.createElement('span');
+        s.className = 'chip';
+        s.textContent = c;
+        cw.appendChild(s);
+      });
+      box.appendChild(cw);
+      if(!REDUCE) tl.fromTo(cw, {opacity:0}, {opacity:1, duration:.3}, '>-0.05');
+    }
+  });
+  typeTL = tl;
+}
+
+/* ---------------- tab content ---------------- */
+function statusBlock(tab, count){
+  return {
+    cls:'head',
+    lines:[
+      {t:'> QUERY    : ' + tab.toUpperCase(), cls:'s'},
+      {t:'> SUBJECT  : ' + game.title, cls:'s'},
+      {t:'> RECORDS  : ' + count, cls:'s'},
+      {t:'> LATENCY  : ' + (Math.random() * 0.08 + 0.01).toFixed(3) + 's', cls:'s'},
+      {t:'> STATUS   : DECRYPTED // CLEARANCE VERIFIED', cls:'s'}
+    ]
+  };
+}
+
+function codexBlocks(){
+  var list = game.codex || [];
+  var out = [statusBlock('codex', list.length)];
+  if(!list.length){
+    out.push({lines:[{t:'> NO CODEX RECORDS RECOVERED FOR THIS UNIVERSE.', cls:'p'}]});
+    return out;
+  }
+  list.forEach(function(e, i){
+    out.push({
+      lines:[
+        {t:'>> ENTRY ' + pad(i + 1, 2) + ' // ' + String(e.title || 'UNTITLED').toUpperCase(), cls:'h'},
+        {t:'   ' + plain(e.desc), cls:'p'}
+      ]
+    });
+  });
+  out.push({lines:[{t:'> END OF CODEX STREAM // ' + list.length + ' RECORD(S)', cls:'s'}]});
+  return out;
+}
+
+function characterBlocks(){
+  var list = game.characters || [];
+  var out = [statusBlock('characters', list.length)];
+  if(!list.length){
+    out.push({lines:[{t:'> NO PERSONNEL FILES RECOVERED FOR THIS UNIVERSE.', cls:'p'}]});
+    return out;
+  }
+  list.forEach(function(c, i){
+    out.push({
+      cls:'char', click:true, data:{i:String(i)},
+      lines:[
+        {t:'>> [' + pad(i + 1, 2) + '] ' + String(c.name || 'UNKNOWN').toUpperCase(), cls:'h'},
+        {t:'   ' + plain(c.bio).slice(0, 190) + (plain(c.bio).length > 190 ? ' [...]' : ''), cls:'p'},
+        {t:'   > CLICK TO OPEN FULL PERSONNEL FILE', cls:'s'}
+      ],
+      chips:(c.equipment || []).slice(0, 4).map(function(x){ return '[ ' + String(x).toUpperCase() + ' ]'; })
+    });
+  });
+  return out;
+}
+
+function timelineBlocks(){
+  var list = game.timeline || [];
+  var out = [statusBlock('timeline', list.length)];
+  if(!list.length){
+    out.push({lines:[{t:'> NO CHRONOLOGY DATA RECOVERED FOR THIS UNIVERSE.', cls:'p'}]});
+    return out;
+  }
+  list.forEach(function(t, i){
+    out.push({
+      lines:[
+        {t:'>> [' + String(t.year || '????').toUpperCase() + '] ' + String(t.event || 'EVENT').toUpperCase(), cls:'h'},
+        {t:'   ' + plain(t.desc), cls:'p'},
+        {t:'   > NODE ' + pad(i + 1, 2) + ' / ' + pad(list.length, 2) + ' // VERIFIED', cls:'s'}
+      ]
+    });
+  });
+  return out;
+}
+
+function showTab(tab){
+  activeTab = tab;
+  var blocks = tab === 'codex' ? codexBlocks() : (tab === 'characters' ? characterBlocks() : timelineBlocks());
+  sepStream.textContent = '+---[ DATA STREAM // ' + tab.toUpperCase() + ' ]---+';
+  renderBlocks(blocks);
+  glitch(sepStream);
+}
+
+/* ---------------- character modal ---------------- */
+function openChar(i){
+  var c = (game.characters || [])[i];
+  if(!c) return;
+  mName.textContent = String(c.name || 'UNKNOWN');
+  mTag.textContent = '> PERSONNEL FILE // ' + game.title;
+  mBody.innerHTML = '';
+  var rows = [];
+  rows.push({t:'> ASSIGNMENT : ' + game.title, cls:'s'});
+  rows.push({t:'> STATUS     : ACTIVE // ARCHIVED', cls:'s'});
+  rows.push({t:'', cls:'p'});
+  rows.push({t:'> BIOGRAPHY', cls:'h'});
+  rows.push({t:'  ' + plain(c.bio), cls:'p'});
+  (c.thoughts || []).forEach(function(q){ rows.push({t:'  > "' + plain(q) + '"', cls:'q'}); });
+  if((c.equipment || []).length){
+    rows.push({t:'', cls:'p'});
+    rows.push({t:'> LOADOUT', cls:'h'});
+  }
+  var tl = gsap.timeline();
+  rows.forEach(function(r){
+    var d = document.createElement('div');
+    d.className = 'ln' + (r.cls ? ' ' + r.cls : '');
+    mBody.appendChild(d);
+    var txt = r.t;
+    if(REDUCE || !txt){ d.textContent = txt; return; }
+    var proxy = {n:0};
+    tl.to(proxy, {
+      n:txt.length, duration:Math.max(.06, Math.min(.7, txt.length * 0.008)), ease:'none',
+      onUpdate:function(){ d.textContent = txt.slice(0, Math.round(proxy.n)); },
+      onComplete:function(){ d.textContent = txt; }
+    });
+  });
+  if((c.equipment || []).length){
+    var cw = document.createElement('div');
+    cw.className = 'chips';
+    c.equipment.forEach(function(x){
+      var s = document.createElement('span');
+      s.className = 'chip';
+      s.textContent = '[ ' + String(x).toUpperCase() + ' ]';
+      cw.appendChild(s);
+    });
+    mBody.appendChild(cw);
+    if(!REDUCE) tl.fromTo(cw, {opacity:0, y:6}, {opacity:1, y:0, duration:.3});
+  }
+  openModal();
+}
+
+function openModal(){
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  gsap.killTweensOf(mwin);
+  if(REDUCE){ gsap.set(mwin, {scaleX:1, scaleY:1, opacity:1}); return; }
+  gsap.timeline()
+    .fromTo(mwin, {scaleX:.25, scaleY:.015, opacity:0}, {scaleX:1, scaleY:.015, opacity:1, duration:.16, ease:'power2.out'})
+    .to(mwin, {scaleY:1, duration:.3, ease:'power3.out'});
+}
+function closeModal(){
+  document.body.style.overflow = '';
+  if(REDUCE){ modal.classList.remove('open'); return; }
+  gsap.timeline()
+    .to(mwin, {scaleY:.015, duration:.2, ease:'power2.in'})
+    .to(mwin, {scaleX:.25, opacity:0, duration:.14, ease:'power2.in',
+      onComplete:function(){ modal.classList.remove('open'); gsap.set(mwin, {clearProps:'all'}); }});
+}
+
+/* ---------------- header render ---------------- */
+function renderHead(){
+  var visits = lsGet('oa_visits', {});
+  visits[gameId] = (visits[gameId] || 0) + 1;
+  lsSet('oa_visits', visits);
+  lsSet('oa_last_universe', gameId);
+
+  titleEl.textContent = game.title || String(gameId).toUpperCase();
+  titleEl.style.setProperty('--accent', game.heroColor || '#b9975b');
+  subEl.textContent = game.subtitle ? '> "' + game.subtitle + '"' : '';
+
+  var rows = [
+    ['DESIGNATION', game.franchiseTitle || game.title || gameId],
+    ['CATEGORY', game.category || 'UNCLASSIFIED'],
+    ['FIRST LOG', game.year || '????'],
+    ['GENRES', (game.genres && game.genres.length ? game.genres.join(' / ') : 'DATA EXPUNGED')],
+    ['CLEARANCE', 'OMEGA // EYES ONLY'],
+    ['ACCESS COUNT', String(visits[gameId]) + ' TIME(S)'],
+    ['SUMMARY', plain(game.desc) || 'No summary on file.']
+  ];
+  metaEl.innerHTML = '';
+  rows.forEach(function(r){
+    var d = document.createElement('div');
+    var label = (r[0] + '            ').slice(0, 12);
+    d.textContent = '> ' + label + ': ';
+    var b = document.createElement('b');
+    b.textContent = r[1];
+    d.appendChild(b);
+    metaEl.appendChild(d);
+  });
+
+  var href = STORY[gameId];
+  if(href){
+    diveEl.setAttribute('href', href);
+    diveEl.dataset.nav = '1';
+    diveEl.textContent = '[ INITIATE STORY DIVE // ' + (game.title || '').toUpperCase() + ' ]';
+  } else {
+    diveEl.setAttribute('href', '#');
+    diveEl.removeAttribute('data-nav');
+    diveEl.textContent = '[ INITIATE STORY DIVE // FILE MISSING ]';
+  }
+  glitch(titleEl);
+}
+
+function buildSelect(){
+  var list = allGames();
+  var keys = Object.keys(list).sort(function(a, b){
+    return String(list[a].title).localeCompare(String(list[b].title));
+  });
+  selEl.innerHTML = '';
+  keys.forEach(function(k){
+    var o = document.createElement('option');
+    o.value = k;
+    o.textContent = '> ' + String(list[k].title || k).toUpperCase() + '  [' + (list[k].year || '????') + ']';
+    if(k === gameId) o.selected = true;
+    selEl.appendChild(o);
+  });
+}
+
+/* ---------------- navigation ---------------- */
+function goTo(url){
+  if(REDUCE){ location.href = url; return; }
+  gsap.to(flicker, {opacity:.16, duration:.08, yoyo:true, repeat:1});
+  gsap.to(wipe, {opacity:1, duration:.26, ease:'power2.in', onComplete:function(){ location.href = url; }});
+}
+
+/* ---------------- events ---------------- */
+document.getElementById('tabs').addEventListener('click', function(e){
+  var btn = e.target.closest('.tab');
+  if(!btn) return;
+  var tabs = this.querySelectorAll('.tab');
+  for(var i = 0; i < tabs.length; i++) tabs[i].classList.remove('on');
+  btn.classList.add('on');
+  showTab(btn.dataset.tab);
+});
+
+panel.addEventListener('click', function(e){
+  if(typeTL){ skipType(); return; }
+  var blk = e.target.closest('.blk.char');
+  if(blk) openChar(parseInt(blk.dataset.i, 10));
+});
+streamFrm.addEventListener('click', function(e){
+  if(e.target.closest('.blk')) return;
+  skipType();
+});
+
+selEl.addEventListener('change', function(){
+  goTo('universe.html?game=' + encodeURIComponent(selEl.value));
+});
+
+diveEl.addEventListener('click', function(e){
+  if(diveEl.dataset.nav) return;
+  e.preventDefault();
+  toast('> ERROR: STORY FILE FOR ' + (game.title || 'THIS UNIVERSE') + ' NOT ARCHIVED');
+  glitch(titleEl);
+});
+
+document.getElementById('m-close').addEventListener('click', closeModal);
+modal.addEventListener('click', function(e){ if(e.target === modal) closeModal(); });
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+});
+
+document.addEventListener('click', function(e){
+  var a = e.target.closest('a[href$=".html"]');
+  if(!a || a.dataset.bare) return;
+  e.preventDefault();
+  goTo(a.getAttribute('href'));
+});
+
+/* ---------------- init ---------------- */
+function init(){
+  applyPhosphor();
+  var list = allGames();
+  gameId = resolveId(new URLSearchParams(location.search).get('game'));
+  game = list[gameId] || list[Object.keys(list)[0]] || {title:'UNKNOWN', id:gameId, codex:[], characters:[], timeline:[]};
+  root.style.setProperty('--accent', game.heroColor || '#b9975b');
+  document.title = 'OBSIDIAN ARCHIVE // ' + String(game.title || 'DOSSIER').toUpperCase();
+  buildSelect();
+  renderHead();
+  showTab('codex');
+
+  if(!REDUCE){
+    gsap.from('#topbar', {y:-40, opacity:0, duration:.5, ease:'power2.out', delay:.05});
+    gsap.from('.frame, .tabs, .btn.big', {y:24, opacity:0, duration:.6, stagger:.09, ease:'power2.out', delay:.12});
+    gsap.to(flicker, {opacity:.05, duration:2.6, repeat:-1, yoyo:true, ease:'sine.inOut'});
+  }
+}
+
+if(!REDUCE && typeof gsap !== 'undefined'){
+  gsap.fromTo('#wipe', {opacity:1}, {opacity:0, duration:.4, ease:'power2.out'});
+}
+init();
+
+})();
+</script>
+<script src="terminal.js"></script>
+<script>
+(function(){
+  if(window.OA_TERMINAL) OA_TERMINAL.mountDrawer();
+})();
+</script>
+</body>
+</html>
